@@ -1,0 +1,8 @@
+-cp src
+-cp src-openfl
+-cp tests/src
+--macro stagewebview._internal.ExtraParamsMacro.include()
+-lib lime
+-lib openfl
+-main tests.TestMain
+--interp

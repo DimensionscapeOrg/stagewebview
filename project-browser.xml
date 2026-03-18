@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	<meta
+		title="StageWebView Browser"
+		package="com.dimensionscape.stagewebview.browser"
+		version="1.0.0"
+		company="Dimensionscape" />
+
+	<app main="Main" file="stagewebview-browser" path="bin/samples/browser" />
+
+	<window width="1600" height="960" fps="60" background="#060A12" />
+	<window if="cpp" orientation="landscape" vsync="false" antialiasing="0" />
+
+	<source path="src" />
+	<source path="src-openfl" />
+	<source path="samples/common/src" />
+	<source path="samples/browser/src" />
+	<haxeflag name="--macro" value="stagewebview._internal.ExtraParamsMacro.include()" />
+
+	<haxelib name="openfl" />
+
+	<assets path="ndll/Windows64/stagewebview.hdll" rename="stagewebview.hdll" unless="HXCPP_M32" if="hl" />
+	<assets path="lib/windows/x64" rename="" exclude="WebView2Loader.dll.lib" unless="HXCPP_M32" if="windows" />
+	<assets path="lib/windows/EBWebView/x64" rename="EBWebView/x64" unless="HXCPP_M32" if="windows" />
+</project>

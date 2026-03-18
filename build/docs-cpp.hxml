@@ -1,0 +1,12 @@
+-cp build
+-cp src
+-cp src-openfl
+--macro stagewebview._internal.ExtraParamsMacro.include()
+-lib lime
+-lib openfl
+-main DocsMain
+-D windows
+-cpp docs/tmp/cpp
+-xml docs/xml/cpp.xml
+--macro include('webview')
+--macro include('openfl.media.StageWebView')

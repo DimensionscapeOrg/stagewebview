@@ -1,0 +1,9 @@
+/.vscode/
+/bin/
+/obj/
+/build/obj/
+/docs/tmp/
+/docs/xml/
+/docs/stagewebview-api/
+/build/hl-click.out.txt
+/build/hl-click.err.txt

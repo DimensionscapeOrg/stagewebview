@@ -1,0 +1,8 @@
+.git/
+.vscode/
+bin/
+obj/
+build/obj/
+docs/
+build/hl-click.out.txt
+build/hl-click.err.txt
