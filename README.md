@@ -1,5 +1,8 @@
 # StageWebView
 
+
+[![browser](https://i.gyazo.com/6e82316b36a9be133e250423ab435d53.png)](https://i.gyazo.com/9c896762c7ddd5fe7b5e2c480367ef87.mp4)
+
 `StageWebView` is a Windows webview library for Haxe.
 
 It exposes two public APIs:

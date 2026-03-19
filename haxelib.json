@@ -1,6 +1,6 @@
 {
   "name": "StageWebView",
-  "url": "https://github.com/DimensionscapeOrg/stagewebview",
+  "url": "https://github.com/dimensionscapeOrg/stagewebview",
   "license": "MIT",
   "tags": [
     "openfl",
@@ -18,7 +18,7 @@
   "description": "Self-contained Windows webview library for Haxe with a public webview.WebView API, an optional OpenFL StageWebView facade, vendored native webview support, direct hxcpp bindings, and a HashLink hdll path.",
   "version": "0.6.1",
   "classPath": "src",
-  "releasenote": "Promoted webview.WebView to a library-owned public API, kept StageWebView as the optional OpenFL facade, and preserved the internal backend plus direct hxcpp and HashLink native paths.",
+  "releasenote": "Fixes the 0.6.0 runtime packaging issue so StageWebView ships its Windows DLLs and HashLink hdll into the actual build output folders for OpenFL and plain Haxe projects.",
   "contributors": [
     "Dimensionscape"
   ],
