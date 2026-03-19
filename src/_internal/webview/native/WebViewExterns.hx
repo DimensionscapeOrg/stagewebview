@@ -7,7 +7,7 @@ import cpp.ConstCharStar;
 
 @:keep
 @:noPrivateAccess
-@:buildXml("<section if=\"stagewebview_root\"><include name=\"${stagewebview_root}/include.xml\"/></section><section unless=\"stagewebview_root\"><include name=\"${haxelib:StageWebView}/include.xml\"/></section>")
+@:buildXml("<section if=\"stagewebview_root\"><include name=\"${stagewebview_root}/build/BuildNative.xml\"/></section><section unless=\"stagewebview_root\"><include name=\"${haxelib:StageWebView}/build/BuildNative.xml\"/></section>")
 @:include("lib/WebViewBindings.h")
 @:native("stagewebview::HxcppWebViewBindings")
 extern class WebViewExterns

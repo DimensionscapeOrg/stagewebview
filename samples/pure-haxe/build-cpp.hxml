@@ -3,6 +3,3 @@
 --macro stagewebview._internal.ExtraParamsMacro.include()
 -main Main
 -cpp bin/samples/pure-haxe/cpp
---cmd cmd /c if not exist bin\\samples\\pure-haxe\\cpp\\EBWebView\\x64 mkdir bin\\samples\\pure-haxe\\cpp\\EBWebView\\x64
---cmd cmd /c copy /Y lib\\windows\\x64\\WebView2Loader.dll bin\\samples\\pure-haxe\\cpp >nul
---cmd cmd /c xcopy /E /I /Y lib\\windows\\EBWebView\\x64 bin\\samples\\pure-haxe\\cpp\\EBWebView\\x64 >nul

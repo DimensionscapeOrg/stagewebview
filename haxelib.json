@@ -16,7 +16,7 @@
     "web"
   ],
   "description": "Self-contained Windows webview library for Haxe with a public webview.WebView API, an optional OpenFL StageWebView facade, vendored native webview support, direct hxcpp bindings, and a HashLink hdll path.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "classPath": "src",
   "releasenote": "Promoted webview.WebView to a library-owned public API, kept StageWebView as the optional OpenFL facade, and preserved the internal backend plus direct hxcpp and HashLink native paths.",
   "contributors": [

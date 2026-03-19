@@ -1,50 +1,10 @@
-<xml>
+<?xml version="1.0" encoding="utf-8"?>
+<extension>
 
-    <pragma once="true" />
-    <set name="STAGEWEBVIEW_OBJ_DIR" value="${this_dir}/build/obj" unless="STAGEWEBVIEW_OBJ_DIR" />
+	<haxeflag name="--macro" value="stagewebview._internal.ExtraParamsMacro.include()" />
 
-    <section if="windows">
-        <compiler id="MSVC">
-            <objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}${OBJEXT}${OBJCACHE}${XPOBJ}" unless="winrt" />
-            <objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}-rt${OBJEXT}${OBJCACHE}${XPOBJ}" if="winrt" />
-            <objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}-arm${OBJEXT}${OBJCACHE}${XPOBJ}" if="HXCPP_ARM64" />
-        </compiler>
+	<assets path="ndll/Windows64/stagewebview.hdll" rename="stagewebview.hdll" unless="HXCPP_M32" if="hl windows" />
+	<assets path="lib/windows/x64" rename="" exclude="WebView2Loader.dll.lib" unless="HXCPP_M32" if="windows" />
+	<assets path="lib/windows/EBWebView/x64" rename="EBWebView/x64" unless="HXCPP_M32" if="windows" />
 
-        <linker id="dll">
-            <libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
-        </linker>
-
-        <linker id="exe">
-            <libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
-        </linker>
-
-        <linker id="static_link">
-            <libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
-        </linker>
-
-        <files id="haxe">
-            <compilerflag value="-I${this_dir}" />
-            <compilerflag value="-I${this_dir}/lib/windows" />
-            <file name="${this_dir}/lib/WebViewBackend.cpp" />
-            <file name="${this_dir}/lib/WebViewBindings.cpp" />
-            <file name="${this_dir}/lib/WindowBackend.cpp" />
-            <file name="${this_dir}/lib/WindowBindings.cpp" />
-        </files>
-
-        <files id="__main__">
-            <compilerflag value="-I${this_dir}" />
-            <compilerflag value="-I${this_dir}/lib/windows" />
-        </files>
-
-        <section unless="HXCPP_M32">
-            <copyFile name="WebView2Loader.dll" from="${this_dir}/lib/windows/x64" toolId="exe" overwrite="true" />
-        </section>
-    </section>
-
-    <target id="haxe">
-        <section if="windows" unless="HXCPP_M32">
-            <lib name="${this_dir}/lib/windows/x64/WebView2Loader.dll.lib" />
-        </section>
-    </target>
-
-</xml>
+</extension>

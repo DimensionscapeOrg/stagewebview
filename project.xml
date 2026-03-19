@@ -14,12 +14,8 @@
 	<source path="src" />
 	<source path="src-openfl" />
 	<source path="samples/basic/src" />
-	<haxeflag name="--macro" value="stagewebview._internal.ExtraParamsMacro.include()" />
+	<include name="include.xml" />
 
 	<haxelib name="openfl" />
 
-	<!-- Runtime dependencies for the vendored WebView2 backend (x64 only) -->
-	<assets path="ndll/Windows64/stagewebview.hdll" rename="stagewebview.hdll" unless="HXCPP_M32" if="hl" />
-	<assets path="lib/windows/x64" rename="" exclude="WebView2Loader.dll.lib" unless="HXCPP_M32" if="windows" />
-	<assets path="lib/windows/EBWebView/x64" rename="EBWebView/x64" unless="HXCPP_M32" if="windows" />
 </project>

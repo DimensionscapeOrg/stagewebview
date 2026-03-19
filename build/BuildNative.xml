@@ -1,0 +1,46 @@
+<xml>
+
+	<pragma once="true" />
+	<set name="STAGEWEBVIEW_OBJ_DIR" value="${this_dir}/obj" unless="STAGEWEBVIEW_OBJ_DIR" />
+
+	<section if="windows">
+		<compiler id="MSVC">
+			<objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}${OBJEXT}${OBJCACHE}${XPOBJ}" unless="winrt" />
+			<objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}-rt${OBJEXT}${OBJCACHE}${XPOBJ}" if="winrt" />
+			<objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}-arm${OBJEXT}${OBJCACHE}${XPOBJ}" if="HXCPP_ARM64" />
+		</compiler>
+
+		<linker id="dll">
+			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
+		</linker>
+
+		<linker id="exe">
+			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
+		</linker>
+
+		<linker id="static_link">
+			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
+		</linker>
+
+		<files id="haxe">
+			<compilerflag value="-I${this_dir}/.." />
+			<compilerflag value="-I${this_dir}/../lib/windows" />
+			<file name="${this_dir}/../lib/WebViewBackend.cpp" />
+			<file name="${this_dir}/../lib/WebViewBindings.cpp" />
+			<file name="${this_dir}/../lib/WindowBackend.cpp" />
+			<file name="${this_dir}/../lib/WindowBindings.cpp" />
+		</files>
+
+		<files id="__main__">
+			<compilerflag value="-I${this_dir}/.." />
+			<compilerflag value="-I${this_dir}/../lib/windows" />
+		</files>
+	</section>
+
+	<target id="haxe">
+		<section if="windows" unless="HXCPP_M32">
+			<lib name="${this_dir}/../lib/windows/x64/WebView2Loader.dll.lib" />
+		</section>
+	</target>
+
+</xml>

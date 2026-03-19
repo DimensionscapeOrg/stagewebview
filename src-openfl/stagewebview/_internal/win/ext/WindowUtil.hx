@@ -85,7 +85,7 @@ class WindowUtil
 
 #if cpp
 @:noPrivateAccess
-@:buildXml("<section if=\"stagewebview_root\"><include name=\"${stagewebview_root}/include.xml\"/></section><section unless=\"stagewebview_root\"><include name=\"${haxelib:StageWebView}/include.xml\"/></section>")
+@:buildXml("<section if=\"stagewebview_root\"><include name=\"${stagewebview_root}/build/BuildNative.xml\"/></section><section unless=\"stagewebview_root\"><include name=\"${haxelib:StageWebView}/build/BuildNative.xml\"/></section>")
 @:include("lib/WindowBindings.h")
 @:native("stagewebview::HxcppWindowBindings")
 private extern class WindowBindings

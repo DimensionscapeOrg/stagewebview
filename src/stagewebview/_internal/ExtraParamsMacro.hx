@@ -13,6 +13,7 @@ class ExtraParamsMacro
 	private static var __definedWindowsTarget:Bool = false;
 	private static var __included:Bool = false;
 	private static var __preparedHashLinkOutput:String = null;
+	private static var __preparedCppOutput:String = null;
 
 	public static function include():Void
 	{
@@ -33,9 +34,16 @@ class ExtraParamsMacro
 			__definedWindowsTarget = true;
 		}
 
-		if (Context.defined("hl") && !Context.defined("display"))
+		if (!Context.defined("display"))
 		{
-			__prepareHashLinkOutput(libraryRoot);
+			if (Context.defined("hl"))
+			{
+				__prepareHashLinkOutput(libraryRoot);
+			}
+			else if (Context.defined("cpp") && !Context.defined("openfl"))
+			{
+				__prepareCppOutput(libraryRoot);
+			}
 		}
 
 		if (__included || !Context.defined("openfl"))
@@ -60,19 +68,48 @@ class ExtraParamsMacro
 			return;
 		}
 
-		var outputDirectory = Path.normalize(Path.directory(output));
-		if (outputDirectory == "")
-		{
-			outputDirectory = Path.normalize(StringTools.replace(Sys.getCwd(), "\\", "/"));
-		}
-
-		if (__preparedHashLinkOutput == outputDirectory)
+		var outputDirectory = __normalizeOutputDirectory(output);
+		if (outputDirectory == null)
 		{
 			return;
 		}
 
-		__preparedHashLinkOutput = outputDirectory;
+		var runtimeDirectory = __resolveHashLinkRuntimeDirectory(output, outputDirectory);
 
+		if (__preparedHashLinkOutput == runtimeDirectory)
+		{
+			return;
+		}
+
+		__preparedHashLinkOutput = runtimeDirectory;
+		__copyHashLinkRuntime(libraryRoot, runtimeDirectory);
+	}
+
+	private static function __prepareCppOutput(libraryRoot:String):Void
+	{
+		var output = Compiler.getOutput();
+		if (output == null || output == "")
+		{
+			return;
+		}
+
+		var outputDirectory = __normalizeOutputDirectory(output);
+		if (outputDirectory == null)
+		{
+			return;
+		}
+
+		if (__preparedCppOutput == outputDirectory)
+		{
+			return;
+		}
+
+		__preparedCppOutput = outputDirectory;
+		__copyWindowsRuntime(libraryRoot, outputDirectory);
+	}
+
+	private static function __copyHashLinkRuntime(libraryRoot:String, outputDirectory:String):Void
+	{
 		var packageDirectory = Path.join([libraryRoot, "ndll", "Windows64"]);
 		var hdllSource = Path.join([packageDirectory, "stagewebview.hdll"]);
 		if (!FileSystem.exists(hdllSource))
@@ -87,12 +124,46 @@ class ExtraParamsMacro
 		}
 
 		__copyIfNeeded(hdllSource, Path.join([outputDirectory, "stagewebview.hdll"]));
+		__copyWindowsRuntime(libraryRoot, outputDirectory);
+	}
 
+	private static function __copyWindowsRuntime(libraryRoot:String, outputDirectory:String):Void
+	{
 		var loaderSource = Path.join([libraryRoot, "lib", "windows", "x64", "WebView2Loader.dll"]);
 		if (FileSystem.exists(loaderSource))
 		{
 			__copyIfNeeded(loaderSource, Path.join([outputDirectory, "WebView2Loader.dll"]));
 		}
+
+		var embeddedBrowserSource = Path.join([libraryRoot, "lib", "windows", "EBWebView", "x64", "EmbeddedBrowserWebView.dll"]);
+		if (FileSystem.exists(embeddedBrowserSource))
+		{
+			__copyIfNeeded(embeddedBrowserSource, Path.join([outputDirectory, "EBWebView", "x64", "EmbeddedBrowserWebView.dll"]));
+		}
+	}
+
+	private static function __normalizeOutputDirectory(output:String):String
+	{
+		var normalizedOutput = Path.normalize(output);
+		var outputDirectory = Path.extension(normalizedOutput) != "" ? Path.directory(normalizedOutput) : normalizedOutput;
+
+		if (outputDirectory == "")
+		{
+			outputDirectory = Path.normalize(StringTools.replace(Sys.getCwd(), "\\", "/"));
+		}
+
+		return outputDirectory != "" ? outputDirectory : null;
+	}
+
+	private static function __resolveHashLinkRuntimeDirectory(output:String, outputDirectory:String):String
+	{
+		if (Context.defined("openfl") && Path.withoutDirectory(Path.withoutExtension(output)) == "ApplicationMain"
+			&& Path.withoutDirectory(outputDirectory) == "obj")
+		{
+			return Path.normalize(Path.join([Path.directory(outputDirectory), "bin"]));
+		}
+
+		return outputDirectory;
 	}
 
 	private static function __copyIfNeeded(source:String, destination:String):Void
