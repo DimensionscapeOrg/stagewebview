@@ -36,6 +36,29 @@ struct HLRootedClosure
 	}
 };
 
+struct HLThreadAttach
+{
+	bool attached = false;
+	char stackTop = 0;
+
+	HLThreadAttach()
+	{
+		if (hl_get_thread() == nullptr)
+		{
+			hl_register_thread(&stackTop);
+			attached = true;
+		}
+	}
+
+	~HLThreadAttach()
+	{
+		if (attached)
+		{
+			hl_unregister_thread();
+		}
+	}
+};
+
 struct HLCallbackState
 {
 	HLRootedClosure *onLocationChanging = nullptr;
@@ -130,6 +153,7 @@ static bool invokeBool(HLRootedClosure *slot, const std::string &value)
 		return false;
 	}
 
+	HLThreadAttach attach;
 	vdynamic *argument = stringArgument(value);
 	vdynamic *result = hl_dyn_call(slot->value, &argument, 1);
 	return result != nullptr && result->v.b;
@@ -139,6 +163,7 @@ static void invokeVoid(HLRootedClosure *slot)
 {
 	if (slot != nullptr && slot->value != nullptr)
 	{
+		HLThreadAttach attach;
 		hl_dyn_call(slot->value, nullptr, 0);
 	}
 }
@@ -150,6 +175,7 @@ static void invokeString(HLRootedClosure *slot, const std::string &value)
 		return;
 	}
 
+	HLThreadAttach attach;
 	vdynamic *argument = stringArgument(value);
 	hl_dyn_call(slot->value, &argument, 1);
 }
@@ -288,6 +314,18 @@ HL_PRIM int HL_NAME(hl_webview_set_html)(HL_CFFIPointer *w, vstring *html)
 	return handle != nullptr && handle->backend != nullptr ? handle->backend->setHtml(toUtf8(html)) : -1;
 }
 
+HL_PRIM int HL_NAME(hl_webview_add_init_script)(HL_CFFIPointer *w, vstring *script)
+{
+	auto *handle = unwrap(w);
+	return handle != nullptr && handle->backend != nullptr ? handle->backend->addInitScript(toUtf8(script)) : -1;
+}
+
+HL_PRIM int HL_NAME(hl_webview_evaluate_javascript)(HL_CFFIPointer *w, vstring *script)
+{
+	auto *handle = unwrap(w);
+	return handle != nullptr && handle->backend != nullptr ? handle->backend->evaluateJavaScript(toUtf8(script)) : -1;
+}
+
 HL_PRIM void HL_NAME(hl_webview_set_callbacks)(HL_CFFIPointer *w, vclosure *onLocationChanging, vclosure *onLocationChange, vclosure *onComplete,
 	vclosure *onError, vclosure *onFocusIn, vclosure *onFocusOut, vclosure *onMessage)
 {
@@ -407,6 +445,8 @@ DEFINE_HL_PRIM(_VOID, hl_webview_destroy, _TCFFIPOINTER);
 DEFINE_HL_PRIM(_I32, hl_webview_set_size, _TCFFIPOINTER _I32 _I32 _I32);
 DEFINE_HL_PRIM(_I32, hl_webview_navigate, _TCFFIPOINTER _STRING);
 DEFINE_HL_PRIM(_I32, hl_webview_set_html, _TCFFIPOINTER _STRING);
+DEFINE_HL_PRIM(_I32, hl_webview_add_init_script, _TCFFIPOINTER _STRING);
+DEFINE_HL_PRIM(_I32, hl_webview_evaluate_javascript, _TCFFIPOINTER _STRING);
 DEFINE_HL_PRIM(_VOID, hl_webview_set_callbacks, _TCFFIPOINTER _DYN _DYN _DYN _DYN _DYN _DYN _DYN);
 DEFINE_HL_PRIM(_I32, hl_webview_history_back, _TCFFIPOINTER);
 DEFINE_HL_PRIM(_I32, hl_webview_history_forward, _TCFFIPOINTER);

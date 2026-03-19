@@ -180,6 +180,26 @@ int WebViewBackend::setHtml(const char *html)
 	return static_cast<int>(webview_set_html(handle, html));
 }
 
+int WebViewBackend::addInitScript(const char *script)
+{
+	if (handle == nullptr)
+	{
+		return -1;
+	}
+
+	return static_cast<int>(webview_init(handle, script != nullptr ? script : ""));
+}
+
+int WebViewBackend::evaluateJavaScript(const char *script)
+{
+	if (handle == nullptr)
+	{
+		return -1;
+	}
+
+	return static_cast<int>(webview_eval(handle, script != nullptr ? script : ""));
+}
+
 void WebViewBackend::setCallbacks(const WebViewCallbackSet &value)
 {
 	callbacks = value;

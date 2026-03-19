@@ -15,11 +15,13 @@ interface IWebViewBackend
 	var onLocationChanging:String->Bool;
 	var onMessage:String->Void;
 
+	function addInitScript(script:String):Void;
 	function assignFocus(direction:Int):Void;
 	function canGoBack():Bool;
 	function canGoForward():Bool;
 	function capturePreviewBase64(format:Int):String;
 	function destroy():Void;
+	function evaluateJavaScript(script:String):Void;
 	function getLocation():String;
 	function getNativeHandle(kind:NativeHandleKind):WebViewHandle;
 	function getTitle():String;

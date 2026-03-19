@@ -45,6 +45,8 @@ public:
 	int setSize(int width, int height, int hints);
 	int navigate(const char *url);
 	int setHtml(const char *html);
+	int addInitScript(const char *script);
+	int evaluateJavaScript(const char *script);
 	void setCallbacks(const WebViewCallbackSet &value);
 	int historyBack();
 	int historyForward();

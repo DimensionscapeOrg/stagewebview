@@ -18,15 +18,15 @@
 		</linker>
 
 		<files id="stagewebview">
-			<compilerflag value="-I${this_dir}" />
-			<compilerflag value="-I${this_dir}/lib/windows" />
+			<compilerflag value="-I${this_dir}/.." />
+			<compilerflag value="-I${this_dir}/../lib/windows" />
 			<compilerflag value="-I${HASHLINK_INCLUDE}" />
 			<compilerflag value="-DINT_MAX=2147483647" />
 
-			<file name="${this_dir}/lib/WebViewBackend.cpp" />
-			<file name="${this_dir}/lib/WebViewHashLink.cpp" />
-			<file name="${this_dir}/lib/WindowBackend.cpp" />
-			<file name="${this_dir}/lib/WindowHashLink.cpp" />
+			<file name="${this_dir}/../lib/WebViewBackend.cpp" />
+			<file name="${this_dir}/../lib/WebViewHashLink.cpp" />
+			<file name="${this_dir}/../lib/WindowBackend.cpp" />
+			<file name="${this_dir}/../lib/WindowHashLink.cpp" />
 		</files>
 	</section>
 
@@ -35,19 +35,19 @@
 		<ext value=".hdll" />
 		<files id="stagewebview" />
 
-		<section if="windows" unless="HXCPP_M32">
-			<copyFile name="WebView2Loader.dll" from="${this_dir}/lib/windows/x64" toolId="dll" overwrite="true" />
-		</section>
+			<section if="windows" unless="HXCPP_M32">
+				<copyFile name="WebView2Loader.dll" from="${this_dir}/../lib/windows/x64" toolId="dll" overwrite="true" />
+			</section>
 
 		<section if="LIBHL_DLL_DIR">
 			<copyFile name="libhl.dll" from="${LIBHL_DLL_DIR}" toolId="dll" overwrite="true" />
 		</section>
 
-		<section if="windows">
-			<lib name="-libpath:${LIBHL_PATH}" />
-			<lib name="libhl.lib" />
-			<lib name="${this_dir}/lib/windows/x64/WebView2Loader.dll.lib" unless="HXCPP_M32" />
-			<lib name="Advapi32.lib" />
+			<section if="windows">
+				<lib name="-libpath:${LIBHL_PATH}" />
+				<lib name="libhl.lib" />
+				<lib name="${this_dir}/../lib/windows/x64/WebView2Loader.dll.lib" unless="HXCPP_M32" />
+				<lib name="Advapi32.lib" />
 			<lib name="Ole32.lib" />
 			<lib name="Shell32.lib" />
 			<lib name="Shlwapi.lib" />

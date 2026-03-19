@@ -60,6 +60,16 @@ class WebViewBackend implements IWebViewBackend
 		return WebViewExterns.capturePreviewBase64(__handle, format);
 	}
 
+	public function addInitScript(script:String):Void
+	{
+		if (__handle == null)
+		{
+			return;
+		}
+
+		WebViewExterns.addInitScript(__handle, script);
+	}
+
 	public function navigate(url:String):Void
 	{
 		if (__handle == null)
@@ -78,6 +88,16 @@ class WebViewBackend implements IWebViewBackend
 		}
 
 		WebViewExterns.setHtml(__handle, html);
+	}
+
+	public function evaluateJavaScript(script:String):Void
+	{
+		if (__handle == null)
+		{
+			return;
+		}
+
+		WebViewExterns.evaluateJavaScript(__handle, script);
 	}
 
 	public function historyBack():Void

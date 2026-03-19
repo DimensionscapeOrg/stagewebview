@@ -14,6 +14,7 @@ class ExtraParamsMacro
 	private static var __included:Bool = false;
 	private static var __preparedHashLinkOutput:String = null;
 	private static var __preparedCppOutput:String = null;
+	private static var __warnedRootOutput:Bool = false;
 
 	public static function include():Void
 	{
@@ -146,10 +147,22 @@ class ExtraParamsMacro
 	{
 		var normalizedOutput = Path.normalize(output);
 		var outputDirectory = Path.extension(normalizedOutput) != "" ? Path.directory(normalizedOutput) : normalizedOutput;
+		var currentWorkingDirectory = Path.normalize(StringTools.replace(Sys.getCwd(), "\\", "/"));
 
-		if (outputDirectory == "")
+		if (outputDirectory == "" || outputDirectory == "." || outputDirectory == currentWorkingDirectory)
 		{
-			outputDirectory = Path.normalize(StringTools.replace(Sys.getCwd(), "\\", "/"));
+			if (!Context.defined("stagewebview_allow_root_output"))
+			{
+				if (!__warnedRootOutput)
+				{
+					Context.warning("StageWebView skipped auto-copying runtime files because the build output resolves to the project root. Use an explicit output directory such as -cpp bin/cpp or -hl bin/hl/hlboot.dat, or define -Dstagewebview_allow_root_output to keep root copies.", Context.currentPos());
+					__warnedRootOutput = true;
+				}
+
+				return null;
+			}
+
+			outputDirectory = currentWorkingDirectory;
 		}
 
 		return outputDirectory != "" ? outputDirectory : null;

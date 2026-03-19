@@ -163,6 +163,22 @@ class WebView
 	}
 
 	/**
+		Registers JavaScript that runs on every new document before page scripts.
+
+		This is useful for bootstrapping page-side bridges or instrumentation that
+		should survive reloads and navigations.
+
+		@param script JavaScript source to inject on document creation.
+	**/
+	public function addInitScript(script:String):Void
+	{
+		if (__backend != null)
+		{
+			__backend.addInitScript(script);
+		}
+	}
+
+	/**
 		Alias for `dispose()`.
 
 		Use this when you prefer `destroy` naming in non-OpenFL host code.
@@ -339,6 +355,22 @@ class WebView
 		if (__backend != null)
 		{
 			__backend.postMessage(message);
+		}
+	}
+
+	/**
+		Executes JavaScript in the active document.
+
+		Use this together with `postMessage()` when you want the page to send a
+		result back through the normal webview messaging channel.
+
+		@param script JavaScript source to execute in the current page.
+	**/
+	public function evaluateJavaScript(script:String):Void
+	{
+		if (__backend != null)
+		{
+			__backend.evaluateJavaScript(script);
 		}
 	}
 

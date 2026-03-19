@@ -97,6 +97,7 @@ final class StageWebView extends EventDispatcher
 	private var __childWindowHandle:WebViewHandle;
 	private var __location:String;
 	private var __pendingHTML:String;
+	private var __pendingInitScripts:Array<String>;
 	private var __pendingMimeType:String;
 	private var __currentWindowKey:String;
 	private var __stage:Stage;
@@ -136,6 +137,7 @@ final class StageWebView extends EventDispatcher
 
 		__location = "";
 		__pendingMimeType = "text/html";
+		__pendingInitScripts = [];
 		__title = "";
 		__viewport = new Rectangle();
 		__webViewOptions = __createDefaultOptions();
@@ -282,6 +284,29 @@ final class StageWebView extends EventDispatcher
 	}
 
 	/**
+		Registers JavaScript that runs on every new document before page scripts.
+
+		Call this before `loadURL()` when you want a bridge or instrumentation to
+		be available from the first page script tick.
+
+		@param script JavaScript source to inject on document creation.
+	**/
+	public function addInitScript(script:String):Void
+	{
+		if (script == null || script == "")
+		{
+			return;
+		}
+
+		__pendingInitScripts.push(script);
+
+		if (__webView != null)
+		{
+			__webView.addInitScript(script);
+		}
+	}
+
+	/**
 		Navigates the embedded webview to a remote or local URL.
 
 		@param url Destination URL.
@@ -309,6 +334,22 @@ final class StageWebView extends EventDispatcher
 		if (__webView != null)
 		{
 			__webView.postMessage(message);
+		}
+	}
+
+	/**
+		Executes JavaScript in the active document.
+
+		Use `postMessage()` when you want the page to send structured results back
+		to Haxe over the normal webview message channel.
+
+		@param script JavaScript source to execute in the current page.
+	**/
+	public function evaluateJavaScript(script:String):Void
+	{
+		if (__webView != null)
+		{
+			__webView.evaluateJavaScript(script);
 		}
 	}
 
@@ -453,6 +494,11 @@ final class StageWebView extends EventDispatcher
 		__childWindowHandle = WinUtil.createChildWindow(__currentWindowHandle, 0, 0, 0, 0);
 		__webView = new WebView(cast __childWindowHandle, __webViewOptions);
 		__configureCallbacks();
+
+		for (script in __pendingInitScripts)
+		{
+			__webView.addInitScript(script);
+		}
 
 		if (__pendingHTML != null)
 		{

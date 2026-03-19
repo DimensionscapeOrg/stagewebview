@@ -4,6 +4,7 @@
 #define INT_MAX 2147483647
 #endif
 #include <hx/GC.h>
+#include <hx/Native.h>
 
 #include "WebViewBackend.h"
 #include "WebViewBindings.h"
@@ -101,6 +102,7 @@ static bool invokeBool(RootedCallback *slot, const std::string &value)
 		return false;
 	}
 
+	hx::NativeAttach attach;
 	Dynamic callback = dynamicFromRoot(slot);
 	return callback != null() ? callback(String(value.c_str())) : false;
 }
@@ -112,6 +114,7 @@ static void invokeVoid(RootedCallback *slot)
 		return;
 	}
 
+	hx::NativeAttach attach;
 	Dynamic callback = dynamicFromRoot(slot);
 	if (callback != null())
 	{
@@ -126,6 +129,7 @@ static void invokeString(RootedCallback *slot, const std::string &value)
 		return;
 	}
 
+	hx::NativeAttach attach;
 	Dynamic callback = dynamicFromRoot(slot);
 	if (callback != null())
 	{
@@ -242,6 +246,18 @@ int HxcppWebViewBindings::setHtml(void *w, const char *html)
 {
 	auto *handle = unwrap(w);
 	return handle != nullptr && handle->backend != nullptr ? handle->backend->setHtml(html) : -1;
+}
+
+int HxcppWebViewBindings::addInitScript(void *w, const char *script)
+{
+	auto *handle = unwrap(w);
+	return handle != nullptr && handle->backend != nullptr ? handle->backend->addInitScript(script) : -1;
+}
+
+int HxcppWebViewBindings::evaluateJavaScript(void *w, const char *script)
+{
+	auto *handle = unwrap(w);
+	return handle != nullptr && handle->backend != nullptr ? handle->backend->evaluateJavaScript(script) : -1;
 }
 
 void HxcppWebViewBindings::setCallbacks(void *w, Dynamic onLocationChanging, Dynamic onLocationChange, Dynamic onComplete, Dynamic onError,
