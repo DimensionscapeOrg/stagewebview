@@ -11,6 +11,25 @@
 
 namespace {
 
+struct HxcppCallbackScope
+{
+	hx::NativeAttach attach;
+	bool restoreGCFreeZone = false;
+
+	HxcppCallbackScope() : attach(hx::GcGetThreadAttachedCount() == 0)
+	{
+		restoreGCFreeZone = hx::TryExitGCFreeZone();
+	}
+
+	~HxcppCallbackScope()
+	{
+		if (restoreGCFreeZone)
+		{
+			hx::EnterGCFreeZone();
+		}
+	}
+};
+
 struct RootedCallback
 {
 	hx::Object *value = nullptr;
@@ -102,7 +121,7 @@ static bool invokeBool(RootedCallback *slot, const std::string &value)
 		return false;
 	}
 
-	hx::NativeAttach attach;
+	HxcppCallbackScope scope;
 	Dynamic callback = dynamicFromRoot(slot);
 	return callback != null() ? callback(String(value.c_str())) : false;
 }
@@ -114,7 +133,7 @@ static void invokeVoid(RootedCallback *slot)
 		return;
 	}
 
-	hx::NativeAttach attach;
+	HxcppCallbackScope scope;
 	Dynamic callback = dynamicFromRoot(slot);
 	if (callback != null())
 	{
@@ -129,7 +148,7 @@ static void invokeString(RootedCallback *slot, const std::string &value)
 		return;
 	}
 
-	hx::NativeAttach attach;
+	HxcppCallbackScope scope;
 	Dynamic callback = dynamicFromRoot(slot);
 	if (callback != null())
 	{
