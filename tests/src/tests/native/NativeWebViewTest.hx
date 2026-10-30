@@ -43,7 +43,8 @@ class NativeWebViewTest extends Test
 		__webView.loadString("<!doctype html><html><head><title>Native test</title></head><body>hello</body></html>");
 
 		Assert.isTrue(__pumpUntil(function():Bool return completed), "onComplete did not fire");
-		Assert.equals("Native test", __webView.title);
+		// WebKitGTK can update the title just after the load finishes.
+		Assert.isTrue(__pumpUntil(function():Bool return __webView.title == "Native test"), "title is \"" + __webView.title + "\"");
 	}
 
 	public function testBridgeCarriesMessagesBothWays():Void

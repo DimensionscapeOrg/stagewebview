@@ -79,11 +79,11 @@ class NativeBehaviourTest extends Test
 		__webView.onLocationChange = function(location:String):Void changes.push(location);
 
 		__navigateAndWait(__fileUrl(first));
-		Assert.equals("First", __webView.title);
+		Assert.isTrue(__waitForTitle("First"), "title is " + __webView.title);
 		Assert.isTrue(__webView.location.indexOf("first%20page.html") >= 0, "location is " + __webView.location);
 
 		__navigateAndWait(__fileUrl(second));
-		Assert.equals("Second", __webView.title);
+		Assert.isTrue(__waitForTitle("Second"), "title is " + __webView.title);
 		Assert.isTrue(StringTools.endsWith(__webView.location, "second.html"), "location is " + __webView.location);
 		Assert.isTrue(changes.length >= 2, "location changes: " + changes);
 		Assert.isTrue(__pumpUntil(function():Bool return __webView.canGoBack()), "canGoBack stayed false");
@@ -203,6 +203,12 @@ class NativeBehaviourTest extends Test
 
 		__pumpUntil(function():Bool return result.done);
 		return result;
+	}
+
+	// WebKitGTK can update the title just after the load finishes.
+	private function __waitForTitle(title:String):Bool
+	{
+		return __pumpUntil(function():Bool return __webView.title == title);
 	}
 
 	private function __waitForMessage(prefix:String):Bool

@@ -66,7 +66,7 @@ class WebView
 	**/
 	public var mediaPlaybackRequiresUserAction(get, set):Bool;
 
-	/** The current page title reported by the backend. */
+	/** The current page title reported by the backend. On WebKitGTK it can update just after `onComplete`. */
 	public var title(get, never):String;
 
 	/** Called after the current page finishes loading. */
@@ -415,6 +415,18 @@ class WebView
 
 		#if sys
 		path = sys.FileSystem.absolutePath(path);
+
+		// Check the folder here so a missing one fails the same way everywhere, whatever the engine would do with it.
+		var directory = haxe.io.Path.directory(path);
+		if (directory != "" && !sys.FileSystem.exists(directory))
+		{
+			if (onComplete != null)
+			{
+				onComplete(false, "The folder does not exist: " + directory);
+			}
+
+			return;
+		}
 		#end
 
 		if (options == null)

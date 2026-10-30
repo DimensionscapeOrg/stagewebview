@@ -35,6 +35,7 @@ jobs:
         run: haxe build/tests.hxml
       - name: Native tests (hxcpp, WebView2)
         shell: bash
+        timeout-minutes: 10
         run: |
           haxe build/tests-native.hxml -D HXCPP_M64
           bin/tests/native/NativeTestMain.exe
@@ -82,6 +83,7 @@ jobs:
       - name: Unit tests (interp)
         run: haxe build/tests.hxml
       - name: Native tests (hxcpp, WebKitGTK)
+        timeout-minutes: 10
         run: |
           haxe build/tests-native.hxml -D HXCPP_M64
           xvfb-run -a -s "-screen 0 1280x1024x24" bin/tests/native/NativeTestMain
@@ -126,6 +128,7 @@ jobs:
       - name: Unit tests (interp)
         run: haxe build/tests.hxml
       - name: Native tests (hxcpp, WKWebView)
+        timeout-minutes: 10
         run: |
           haxe build/tests-native.hxml -D HXCPP_ARM64
           bin/tests/native/NativeTestMain
