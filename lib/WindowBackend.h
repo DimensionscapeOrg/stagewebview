@@ -1,7 +1,12 @@
 #pragma once
 
 #include <string>
+
+// Child-window plumbing for the OpenFL facade. WindowBackend.cpp is the Windows implementation;
+// gtk/GtkHostWindow.cpp and apple/AppleHostWindow.mm implement the same functions elsewhere.
+#if defined(_WIN32)
 #include <Windows.h>
+#endif
 
 namespace stagewebview {
 

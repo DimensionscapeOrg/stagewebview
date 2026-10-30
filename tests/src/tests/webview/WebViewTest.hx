@@ -96,6 +96,56 @@ class WebViewTest
 		}, {debug: true, userAgent: "StageWebView demo", mediaPlaybackRequiresUserAction: false, enableContextMenu: false}, windowHandle);
 	}
 
+	public function testStartHiddenReachesBackend():Void
+	{
+		__withWebView(function (webView:WebView, backend:FakeBackend):Void
+		{
+			Assert.isTrue(backend.createdWithOptions.startHidden);
+		}, {startHidden: true});
+	}
+
+	public function testPrintToPDFUsesDefaultsAndReportsResult():Void
+	{
+		__withWebView(function (webView:WebView, backend:FakeBackend):Void
+		{
+			var results = [];
+			webView.printToPDF("report.pdf", null, function (success:Bool, error:String):Void
+			{
+				results.push(success);
+			});
+
+			Assert.equals(1, results.length);
+			Assert.isTrue(results[0]);
+			Assert.isTrue(StringTools.endsWith(backend.lastPdfPath, "report.pdf"));
+			Assert.isTrue(haxe.io.Path.isAbsolute(backend.lastPdfPath));
+			Assert.equals(8.5, backend.lastPdfOptions.pageWidth);
+			Assert.equals(11.0, backend.lastPdfOptions.pageHeight);
+			Assert.equals(0.4, backend.lastPdfOptions.marginLeft);
+			Assert.isTrue(backend.lastPdfOptions.printBackground);
+			Assert.isTrue(backend.lastPdfOptions.repeatTableHeaders);
+
+			backend.pdfResult = {success: false, error: "disk full"};
+			var message:String = null;
+			webView.printToPDF("report.pdf", {landscape: true, pageWidth: 8.27, pageHeight: 11.69}, function (success:Bool, error:String):Void
+			{
+				message = error;
+			});
+
+			Assert.equals("disk full", message);
+			Assert.isTrue(backend.lastPdfOptions.landscape);
+			Assert.equals(8.27, backend.lastPdfOptions.pageWidth);
+			Assert.equals(0.4, backend.lastPdfOptions.marginTop);
+
+			webView.dispose();
+			var disposedMessage:String = null;
+			webView.printToPDF("report.pdf", null, function (success:Bool, error:String):Void
+			{
+				disposedMessage = error;
+			});
+			Assert.notNull(disposedMessage);
+		});
+	}
+
 	public function testDisposeAndDestroyAreSafe():Void
 	{
 		__withWebView(function (webView:WebView, backend:FakeBackend):Void

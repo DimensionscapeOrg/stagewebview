@@ -1,6 +1,10 @@
 #pragma once
 
+// Guarded like hxcpp's generated headers: these are included after hxcpp.h, and GCC cannot reuse the
+// precompiled hxcpp.h for a second include.
+#ifndef HXCPP_H
 #include <hxcpp.h>
+#endif
 
 namespace stagewebview {
 
@@ -8,7 +12,7 @@ class HxcppWebViewBindings
 {
 public:
 	static void *create(int debug, void *window, const char *userAgent, int mediaPlaybackRequiresUserAction, int enableContextMenu, int enableKeyboardShortcuts,
-		int enableDevTools, int enableStatusBar, int enableZoom);
+		int enableDevTools, int enableStatusBar, int enableZoom, int startHidden);
 	static void destroy(void *w);
 	static int setSize(void *w, int width, int height, int hints);
 	static int navigate(void *w, const char *url);
@@ -32,7 +36,10 @@ public:
 	static String getLocation(void *w);
 	static String getTitle(void *w);
 	static void *getNativeHandle(void *w, int kind);
+	static int printToPdf(void *w, const char *path, double pageWidth, double pageHeight, double marginTop, double marginRight, double marginBottom,
+		double marginLeft, int landscape, int printBackground, double scale, int repeatTableHeaders, Dynamic onComplete);
 	static void webView2ControllerSetBounds(void *controller, int width, int height);
+	static int processEvents();
 };
 
 } // namespace stagewebview

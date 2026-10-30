@@ -1,10 +1,17 @@
 package webview;
 
 import _internal.webview.IWebViewBackend;
+#if android
+import _internal.webview.android.AndroidWebViewBackend;
+#else
 import _internal.webview.WebViewBackend;
+#end
 
 /**
-	A framework-agnostic desktop webview wrapper for Haxe applications.
+	A framework-agnostic webview wrapper for Haxe applications.
+
+	Backends: WebView2 on Windows, WebKitGTK on Linux, WKWebView on macOS and
+	iOS, and `android.webkit.WebView` on Android.
 
 	Use this class when you want to host web content without depending on OpenFL.
 	It exposes navigation, history, focus, sizing, top-level window control,
@@ -34,7 +41,7 @@ class WebView
 {
 	/** Whether the current target platform can create a runtime webview. */
 	public static inline final isSupported:Bool =
-	#if (windows || stagewebview_windows)
+	#if (windows || stagewebview_windows || stagewebview_supported)
 	true
 	#else
 	false
@@ -375,6 +382,68 @@ class WebView
 	}
 
 	/**
+		Saves the loaded page as a PDF file.
+
+		Printing uses the platform's own print engine: WebView2 `PrintToPdf` on
+		Windows, a WebKitGTK print operation on Linux, the WebKit print path on
+		macOS and iOS, and `PrintDocumentAdapter` on Android. It works for a
+		webview created with `startHidden`, so no window has to be visible.
+
+		The callback runs on the thread that calls `processEvents()`. On Windows,
+		macOS and iOS the host's normal event loop also delivers it.
+
+		@param path Destination file. Relative paths resolve against the current
+			working directory.
+		@param options Paper size, margins and other page settings. Defaults to US
+			Letter with 0.4 inch margins.
+		@param onComplete Receives `true` and `null` on success, or `false` and an
+			error message.
+	**/
+	public function printToPDF(path:String, ?options:PdfOptions, ?onComplete:(success:Bool, error:String)->Void):Void
+	{
+		if (__backend == null)
+		{
+			if (onComplete != null)
+			{
+				onComplete(false, "The webview has been disposed");
+			}
+
+			return;
+		}
+
+		#if sys
+		path = sys.FileSystem.absolutePath(path);
+		#end
+
+		if (options == null)
+		{
+			options = {};
+		}
+
+		__backend.printToPDF(path, options, onComplete);
+	}
+
+	/**
+		Runs pending native webview work without blocking.
+
+		Linux (GTK) and Android deliver page events, messages and `printToPDF()`
+		results only when this is called, so call it once per frame from your
+		main loop. The OpenFL `StageWebView` facade does this for you. On Windows,
+		macOS and iOS the host's event loop already does the same work and this
+		call is optional.
+
+		@return The number of native events handled.
+	**/
+	public static function processEvents():Int
+	{
+		#if android
+		return AndroidWebViewBackend.processEvents();
+		#else
+		return _internal.webview.native.WebViewExterns.processEvents();
+		#end
+	}
+
+	/**
 		Reloads the current page.
 	**/
 	public function reload():Void
@@ -575,6 +644,7 @@ class WebView
 		copy.enableDevTools = __readOption(options, "enableDevTools");
 		copy.enableStatusBar = __readOption(options, "enableStatusBar");
 		copy.enableZoom = __readOption(options, "enableZoom");
+		copy.startHidden = __readOption(options, "startHidden");
 		return copy;
 	}
 
@@ -585,7 +655,11 @@ class WebView
 
 	private static function __createBackend(options:WebViewOptions, window:WebViewHandle):IWebViewBackend
 	{
+		#if android
+		return new AndroidWebViewBackend(window, options);
+		#else
 		return new WebViewBackend(window, options);
+		#end
 	}
 
 	private static function __resetBackendFactory():Void

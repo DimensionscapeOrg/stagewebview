@@ -14,6 +14,9 @@ package webview;
 	- `enableDevTools`: Enables or disables developer tools access.
 	- `enableStatusBar`: Enables or disables status bar popups.
 	- `enableZoom`: Enables or disables user zoom gestures and shortcuts.
+	- `startHidden`: Creates the webview without any visible window, for
+	  off-screen work such as `printToPDF()`. Only applies when no host window
+	  is passed.
 
 	## Example
 
@@ -72,4 +75,14 @@ class WebViewOptions
 		Enables or disables user zoom operations when supported.
 	**/
 	public var enableZoom:Null<Bool> = null;
+
+	/**
+		Creates the webview without any visible window when no host window is
+		passed. Use it for off-screen work such as `printToPDF()`.
+
+		Windows parents WebView2 into a window that is never shown, Linux uses a
+		GTK offscreen window, macOS an off-screen window, and iOS and Android a
+		view that is never attached to the screen.
+	**/
+	public var startHidden:Null<Bool> = null;
 }

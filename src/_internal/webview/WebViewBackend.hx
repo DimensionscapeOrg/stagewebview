@@ -3,6 +3,7 @@ package _internal.webview;
 import _internal.webview.IWebViewBackend;
 import _internal.webview.native.WebViewExterns;
 import webview.NativeHandleKind;
+import webview.PdfOptions;
 import webview.WebViewHandle;
 import webview.WebViewHint;
 import webview.WebViewOptions;
@@ -26,7 +27,7 @@ class WebViewBackend implements IWebViewBackend
 		var debug = config.debug == true;
 		__handle = WebViewExterns.create(debug ? 1 : 0, window, config.userAgent, __boolToNative(config.mediaPlaybackRequiresUserAction),
 			__boolToNative(config.enableContextMenu), __boolToNative(config.enableKeyboardShortcuts), __boolToNative(config.enableDevTools),
-			__boolToNative(config.enableStatusBar), __boolToNative(config.enableZoom));
+			__boolToNative(config.enableStatusBar), __boolToNative(config.enableZoom), __boolToNative(config.startHidden));
 		if (__handle == null)
 		{
 			throw "Failed to create a WebView";
@@ -178,6 +179,40 @@ class WebViewBackend implements IWebViewBackend
 		}
 
 		WebViewExterns.postMessage(__handle, message);
+	}
+
+	public function printToPDF(path:String, options:PdfOptions, onComplete:Bool->String->Void):Void
+	{
+		if (__handle == null)
+		{
+			if (onComplete != null)
+			{
+				onComplete(false, "The webview has been disposed");
+			}
+
+			return;
+		}
+
+		var done = function(success:Bool, error:Dynamic):Void
+		{
+			if (onComplete != null)
+			{
+				#if hl
+				onComplete(success, error != null ? __dynamicToString(error) : null);
+				#else
+				onComplete(success, error);
+				#end
+			}
+		};
+
+		var result = WebViewExterns.printToPdf(__handle, path, options.pageWidth, options.pageHeight, options.marginTop, options.marginRight,
+			options.marginBottom, options.marginLeft, options.landscape ? 1 : 0, options.printBackground ? 1 : 0, options.scale,
+			options.repeatTableHeaders ? 1 : 0, done);
+
+		if (result != 0 && onComplete != null)
+		{
+			onComplete(false, "The platform could not start printing (" + result + ")");
+		}
 	}
 
 	public function assignFocus(direction:Int):Void

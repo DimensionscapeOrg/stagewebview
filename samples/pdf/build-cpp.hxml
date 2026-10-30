@@ -1,0 +1,6 @@
+-cp src
+-cp samples/common/src
+-cp samples/pdf/src
+--macro stagewebview._internal.ExtraParamsMacro.include()
+-main Main
+-cpp bin/samples/pdf/cpp

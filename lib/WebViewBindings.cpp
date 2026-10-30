@@ -123,7 +123,7 @@ static bool invokeBool(RootedCallback *slot, const std::string &value)
 
 	HxcppCallbackScope scope;
 	Dynamic callback = dynamicFromRoot(slot);
-	return callback != null() ? callback(String(value.c_str())) : false;
+	return callback != null() ? static_cast<bool>(callback(String(value.c_str()))) : false;
 }
 
 static void invokeVoid(RootedCallback *slot)
@@ -198,6 +198,25 @@ static void onMessageThunk(void *userData, const std::string &message)
 	invokeString(callbacks->onMessage, message);
 }
 
+// Owns the Haxe completion callback of one printToPdf request until the platform reports back.
+struct HxcppPdfRequest
+{
+	RootedCallback callback;
+};
+
+static void onPdfCompleteThunk(void *userData, bool success, const std::string &message)
+{
+	auto *request = reinterpret_cast<HxcppPdfRequest *>(userData);
+	HxcppCallbackScope scope;
+	if (request->callback.value != nullptr)
+	{
+		Dynamic callback = Dynamic(request->callback.value);
+		callback(success, success ? String() : String(message.c_str()));
+	}
+
+	delete request;
+}
+
 static void refreshCallbacks(HxcppWebViewHandle *handle)
 {
 	if (handle == nullptr || handle->backend == nullptr)
@@ -222,7 +241,7 @@ static void refreshCallbacks(HxcppWebViewHandle *handle)
 namespace stagewebview {
 
 void *HxcppWebViewBindings::create(int debug, void *window, const char *userAgent, int mediaPlaybackRequiresUserAction, int enableContextMenu,
-	int enableKeyboardShortcuts, int enableDevTools, int enableStatusBar, int enableZoom)
+	int enableKeyboardShortcuts, int enableDevTools, int enableStatusBar, int enableZoom, int startHidden)
 {
 	auto *handle = new HxcppWebViewHandle();
 	WebViewCreateOptions options;
@@ -233,6 +252,7 @@ void *HxcppWebViewBindings::create(int debug, void *window, const char *userAgen
 	options.enableDevTools = enableDevTools;
 	options.enableStatusBar = enableStatusBar;
 	options.enableZoom = enableZoom;
+	options.startHidden = startHidden;
 	handle->backend = WebViewBackend::create(debug, window, options);
 
 	if (handle->backend == nullptr)
@@ -388,9 +408,48 @@ void *HxcppWebViewBindings::getNativeHandle(void *w, int kind)
 	return handle != nullptr && handle->backend != nullptr ? handle->backend->getNativeHandle(kind) : nullptr;
 }
 
+int HxcppWebViewBindings::printToPdf(void *w, const char *path, double pageWidth, double pageHeight, double marginTop, double marginRight,
+	double marginBottom, double marginLeft, int landscape, int printBackground, double scale, int repeatTableHeaders, Dynamic onComplete)
+{
+	auto *handle = unwrap(w);
+	if (handle == nullptr || handle->backend == nullptr)
+	{
+		return -1;
+	}
+
+	WebViewPdfOptions options;
+	options.pageWidth = pageWidth;
+	options.pageHeight = pageHeight;
+	options.marginTop = marginTop;
+	options.marginRight = marginRight;
+	options.marginBottom = marginBottom;
+	options.marginLeft = marginLeft;
+	options.landscape = landscape;
+	options.printBackground = printBackground;
+	options.scale = scale;
+	options.repeatTableHeaders = repeatTableHeaders;
+
+	auto *request = new HxcppPdfRequest();
+	request->callback.value = onComplete != null() ? onComplete.mPtr : nullptr;
+
+	int result = handle->backend->printToPdf(path, options, onPdfCompleteThunk, request);
+	if (result != 0)
+	{
+		// The platform never accepted the request, so the callback will not arrive.
+		delete request;
+	}
+
+	return result;
+}
+
 void HxcppWebViewBindings::webView2ControllerSetBounds(void *controller, int width, int height)
 {
 	WebViewBackend::webView2ControllerSetBounds(controller, width, height);
+}
+
+int HxcppWebViewBindings::processEvents()
+{
+	return WebViewBackend::processEvents();
 }
 
 } // namespace stagewebview

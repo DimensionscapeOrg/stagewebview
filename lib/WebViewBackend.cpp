@@ -1,3 +1,4 @@
+// Windows (WebView2) implementation. Other platforms implement WebViewBackend in WebViewBackendPlatform.cpp.
 #include <hxcpp.h>
 #include <limits.h>
 #ifndef INT_MAX
@@ -98,6 +99,37 @@ static bool waitForHandleWithMessageLoop(HANDLE handle)
 		}
 	}
 }
+
+// Width and height of the never-shown host window used by startHidden.
+static constexpr int HIDDEN_HOST_WIDTH = 1024;
+static constexpr int HIDDEN_HOST_HEIGHT = 1366;
+
+static HWND createHiddenHostWindow()
+{
+	static constexpr LPCWSTR className = L"StageWebViewHiddenHost";
+	HINSTANCE instance = GetModuleHandle(nullptr);
+
+	// webview.h only initializes COM for windows it creates itself, as WindowBackend does for child windows.
+	CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
+	WNDCLASSEXW existing{};
+	if (!GetClassInfoExW(instance, className, &existing))
+	{
+		WNDCLASSEXW wc{};
+		wc.cbSize = sizeof(WNDCLASSEXW);
+		wc.lpfnWndProc = DefWindowProcW;
+		wc.hInstance = instance;
+		wc.lpszClassName = className;
+		if (!RegisterClassExW(&wc))
+		{
+			return nullptr;
+		}
+	}
+
+	// WS_POPUP without WS_VISIBLE: the window exists for WebView2 to parent into, and is never shown.
+	return CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, className, nullptr, WS_POPUP, 0, 0, HIDDEN_HOST_WIDTH, HIDDEN_HOST_HEIGHT,
+		nullptr, nullptr, instance, nullptr);
+}
 #endif
 
 } // namespace
@@ -108,6 +140,21 @@ WebViewBackend *WebViewBackend::create(int debug, void *window, const WebViewCre
 {
 	auto *backend = new WebViewBackend();
 	backend->createOptions = options;
+
+	#if defined(_WIN32)
+	if (window == nullptr && options.startHidden == 1)
+	{
+		backend->hiddenHost = createHiddenHostWindow();
+		if (backend->hiddenHost == nullptr)
+		{
+			delete backend;
+			return nullptr;
+		}
+
+		window = backend->hiddenHost;
+	}
+	#endif
+
 	backend->handle = webview_create(debug, window);
 
 	if (backend->handle == nullptr)
@@ -120,6 +167,17 @@ WebViewBackend *WebViewBackend::create(int debug, void *window, const WebViewCre
 	backend->cacheNativeHandles();
 	backend->applySettings();
 	backend->registerEvents();
+
+	if (backend->hiddenHost != nullptr)
+	{
+		auto widget = reinterpret_cast<HWND>(webview_get_native_handle(backend->handle, WEBVIEW_NATIVE_HANDLE_KIND_UI_WIDGET));
+		if (widget != nullptr)
+		{
+			MoveWindow(widget, 0, 0, HIDDEN_HOST_WIDTH, HIDDEN_HOST_HEIGHT, FALSE);
+		}
+
+		webView2ControllerSetBounds(backend->controller, HIDDEN_HOST_WIDTH, HIDDEN_HOST_HEIGHT);
+	}
 	#endif
 
 	return backend;
@@ -148,6 +206,14 @@ WebViewBackend::~WebViewBackend()
 		webview_destroy(handle);
 		handle = nullptr;
 	}
+
+	#if defined(_WIN32)
+	if (hiddenHost != nullptr)
+	{
+		DestroyWindow(hiddenHost);
+		hiddenHost = nullptr;
+	}
+	#endif
 }
 
 int WebViewBackend::setSize(int width, int height, int hints)
@@ -524,6 +590,135 @@ void WebViewBackend::webView2ControllerSetBounds(void *controllerHandle, int wid
 	(void)width;
 	(void)height;
 	#endif
+}
+
+int WebViewBackend::printToPdf(const char *path, const WebViewPdfOptions &options, WebViewPdfCallback callback, void *userData)
+{
+	if (core == nullptr || path == nullptr || path[0] == '\0')
+	{
+		return -1;
+	}
+
+	ICoreWebView2_7 *core7 = nullptr;
+	if (FAILED(core->QueryInterface(IID_ICoreWebView2_7, reinterpret_cast<void **>(&core7))) || core7 == nullptr)
+	{
+		return -2;
+	}
+
+	// Print settings come from the environment; without them PrintToPdf uses WebView2 defaults.
+	ICoreWebView2PrintSettings *settings = nullptr;
+	ICoreWebView2_2 *core2 = nullptr;
+	if (SUCCEEDED(core->QueryInterface(IID_ICoreWebView2_2, reinterpret_cast<void **>(&core2))) && core2 != nullptr)
+	{
+		ICoreWebView2Environment *environment = nullptr;
+		if (SUCCEEDED(core2->get_Environment(&environment)) && environment != nullptr)
+		{
+			ICoreWebView2Environment6 *environment6 = nullptr;
+			if (SUCCEEDED(environment->QueryInterface(IID_ICoreWebView2Environment6, reinterpret_cast<void **>(&environment6))) && environment6 != nullptr)
+			{
+				environment6->CreatePrintSettings(&settings);
+				environment6->Release();
+			}
+
+			environment->Release();
+		}
+
+		core2->Release();
+	}
+
+	if (settings != nullptr)
+	{
+		if (options.pageWidth > 0)
+		{
+			settings->put_PageWidth(options.pageWidth);
+		}
+
+		if (options.pageHeight > 0)
+		{
+			settings->put_PageHeight(options.pageHeight);
+		}
+
+		if (options.marginTop >= 0)
+		{
+			settings->put_MarginTop(options.marginTop);
+		}
+
+		if (options.marginRight >= 0)
+		{
+			settings->put_MarginRight(options.marginRight);
+		}
+
+		if (options.marginBottom >= 0)
+		{
+			settings->put_MarginBottom(options.marginBottom);
+		}
+
+		if (options.marginLeft >= 0)
+		{
+			settings->put_MarginLeft(options.marginLeft);
+		}
+
+		if (options.landscape != -1)
+		{
+			settings->put_Orientation(options.landscape == 1 ? COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE : COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT);
+		}
+
+		if (options.printBackground != -1)
+		{
+			settings->put_ShouldPrintBackgrounds(options.printBackground == 1 ? TRUE : FALSE);
+		}
+
+		if (options.scale > 0)
+		{
+			settings->put_ScaleFactor(options.scale);
+		}
+
+		settings->put_ShouldPrintHeaderAndFooter(FALSE);
+	}
+
+	auto widePath = webview::detail::widen_string(std::string(path));
+	auto result = core7->PrintToPdf(widePath.c_str(), settings,
+		Microsoft::WRL::Callback<ICoreWebView2PrintToPdfCompletedHandler>(
+			[callback, userData](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+			{
+				if (callback != nullptr)
+				{
+					bool success = SUCCEEDED(errorCode) && isSuccessful;
+					callback(userData, success, success ? std::string() : "PrintToPdf failed: " + std::to_string(static_cast<long>(errorCode)));
+				}
+
+				return S_OK;
+			})
+			.Get());
+
+	if (settings != nullptr)
+	{
+		settings->Release();
+	}
+
+	core7->Release();
+	return SUCCEEDED(result) ? 0 : -3;
+}
+
+int WebViewBackend::processEvents()
+{
+	int processed = 0;
+	MSG message{};
+	while (PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
+	{
+		if (message.message == WM_QUIT)
+		{
+			// Leave the quit request for the host's own loop.
+			PostQuitMessage(static_cast<int>(message.wParam));
+			break;
+		}
+
+		TranslateMessage(&message);
+		DispatchMessage(&message);
+		processed++;
+	}
+
+	return processed;
 }
 
 bool WebViewBackend::notifyLocationChanging(const std::string &location) const

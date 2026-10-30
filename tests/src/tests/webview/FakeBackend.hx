@@ -2,6 +2,7 @@ package tests.webview;
 
 import _internal.webview.IWebViewBackend;
 import webview.NativeHandleKind;
+import webview.PdfOptions;
 import webview.WebViewHandle;
 import webview.WebViewHint;
 
@@ -40,6 +41,11 @@ class FakeBackend implements IWebViewBackend
 	public var canGoForwardValue:Bool;
 	public var lastCaptureFormat:Int;
 	public var previewBase64:String;
+	public var initScripts:Array<String> = [];
+	public var evaluatedScripts:Array<String> = [];
+	public var lastPdfPath:String;
+	public var lastPdfOptions:PdfOptions;
+	public var pdfResult:{success:Bool, error:String} = {success: true, error: null};
 
 	private var __handle:WebViewHandle;
 	private var __nativeHandles:Map<Int, WebViewHandle>;
@@ -63,6 +69,27 @@ class FakeBackend implements IWebViewBackend
 		terminateCount = 0;
 		location = "";
 		title = "";
+	}
+
+	public function addInitScript(script:String):Void
+	{
+		initScripts.push(script);
+	}
+
+	public function evaluateJavaScript(script:String):Void
+	{
+		evaluatedScripts.push(script);
+	}
+
+	public function printToPDF(path:String, options:PdfOptions, onComplete:Bool->String->Void):Void
+	{
+		lastPdfPath = path;
+		lastPdfOptions = options;
+
+		if (onComplete != null)
+		{
+			onComplete(pdfResult.success, pdfResult.error);
+		}
 	}
 
 	public function assignFocus(direction:Int):Void

@@ -1,6 +1,10 @@
 #pragma once
 
+// Guarded like hxcpp's generated headers: these are included after hxcpp.h, and GCC cannot reuse the
+// precompiled hxcpp.h for a second include.
+#ifndef HXCPP_H
 #include <hxcpp.h>
+#endif
 
 namespace stagewebview {
 

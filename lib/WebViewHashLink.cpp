@@ -241,6 +241,27 @@ static void refreshCallbacks(HLWebViewHandle *handle)
 	handle->backend->setCallbacks(callbacks);
 }
 
+// Owns the Haxe completion closure of one printToPdf request until the platform reports back.
+struct HLPdfRequest
+{
+	HLRootedClosure callback;
+};
+
+static void onPdfCompleteThunk(void *userData, bool success, const std::string &message)
+{
+	auto *request = reinterpret_cast<HLPdfRequest *>(userData);
+	HLThreadAttach attach;
+	if (request->callback.value != nullptr)
+	{
+		vdynamic *arguments[2];
+		arguments[0] = hl_make_dyn(&success, &hlt_bool);
+		arguments[1] = success ? nullptr : stringArgument(message);
+		hl_dyn_call(request->callback.value, arguments, 2);
+	}
+
+	delete request;
+}
+
 static const char *toUtf8(vstring *value)
 {
 	return value != nullptr ? hl_to_utf8(value->bytes) : nullptr;
@@ -258,7 +279,7 @@ static vbyte *copyBytes(const std::string &value)
 #define _TCFFIPOINTER _DYN
 
 HL_PRIM HL_CFFIPointer *HL_NAME(hl_webview_create)(int debug, HL_CFFIPointer *window, vstring *userAgent, int mediaPlaybackRequiresUserAction,
-	int enableContextMenu, int enableKeyboardShortcuts, int enableDevTools, int enableStatusBar, int enableZoom)
+	int enableContextMenu, int enableKeyboardShortcuts, int enableDevTools, int enableStatusBar, int enableZoom, int startHidden)
 {
 	auto *handle = new HLWebViewHandle();
 	stagewebview::WebViewCreateOptions options;
@@ -269,6 +290,7 @@ HL_PRIM HL_CFFIPointer *HL_NAME(hl_webview_create)(int debug, HL_CFFIPointer *wi
 	options.enableDevTools = enableDevTools;
 	options.enableStatusBar = enableStatusBar;
 	options.enableZoom = enableZoom;
+	options.startHidden = startHidden;
 	handle->backend = stagewebview::WebViewBackend::create(debug, window != nullptr ? window->ptr : nullptr, options);
 
 	if (handle->backend == nullptr)
@@ -435,12 +457,52 @@ HL_PRIM HL_CFFIPointer *HL_NAME(hl_webview_get_native_handle)(HL_CFFIPointer *w,
 	return handle != nullptr && handle->backend != nullptr ? allocPointer(handle->backend->getNativeHandle(kind)) : nullptr;
 }
 
+HL_PRIM int HL_NAME(hl_webview_print_to_pdf)(HL_CFFIPointer *w, vstring *path, double pageWidth, double pageHeight, double marginTop,
+	double marginRight, double marginBottom, double marginLeft, int landscape, int printBackground, double scale, int repeatTableHeaders,
+	vclosure *onComplete)
+{
+	auto *handle = unwrap(w);
+	if (handle == nullptr || handle->backend == nullptr)
+	{
+		return -1;
+	}
+
+	stagewebview::WebViewPdfOptions options;
+	options.pageWidth = pageWidth;
+	options.pageHeight = pageHeight;
+	options.marginTop = marginTop;
+	options.marginRight = marginRight;
+	options.marginBottom = marginBottom;
+	options.marginLeft = marginLeft;
+	options.landscape = landscape;
+	options.printBackground = printBackground;
+	options.scale = scale;
+	options.repeatTableHeaders = repeatTableHeaders;
+
+	auto *request = new HLPdfRequest();
+	request->callback.value = onComplete;
+
+	int result = handle->backend->printToPdf(toUtf8(path), options, onPdfCompleteThunk, request);
+	if (result != 0)
+	{
+		// The platform never accepted the request, so the callback will not arrive.
+		delete request;
+	}
+
+	return result;
+}
+
+HL_PRIM int HL_NAME(hl_webview_process_events)()
+{
+	return stagewebview::WebViewBackend::processEvents();
+}
+
 HL_PRIM void HL_NAME(hl_webview_webview2_controller_set_bounds)(HL_CFFIPointer *controller, int width, int height)
 {
 	stagewebview::WebViewBackend::webView2ControllerSetBounds(controller != nullptr ? controller->ptr : nullptr, width, height);
 }
 
-DEFINE_HL_PRIM(_TCFFIPOINTER, hl_webview_create, _I32 _TCFFIPOINTER _STRING _I32 _I32 _I32 _I32 _I32 _I32);
+DEFINE_HL_PRIM(_TCFFIPOINTER, hl_webview_create, _I32 _TCFFIPOINTER _STRING _I32 _I32 _I32 _I32 _I32 _I32 _I32);
 DEFINE_HL_PRIM(_VOID, hl_webview_destroy, _TCFFIPOINTER);
 DEFINE_HL_PRIM(_I32, hl_webview_set_size, _TCFFIPOINTER _I32 _I32 _I32);
 DEFINE_HL_PRIM(_I32, hl_webview_navigate, _TCFFIPOINTER _STRING);
@@ -463,4 +525,6 @@ DEFINE_HL_PRIM(_BYTES, hl_webview_capture_preview_base64, _TCFFIPOINTER _I32);
 DEFINE_HL_PRIM(_BYTES, hl_webview_get_location, _TCFFIPOINTER);
 DEFINE_HL_PRIM(_BYTES, hl_webview_get_title, _TCFFIPOINTER);
 DEFINE_HL_PRIM(_TCFFIPOINTER, hl_webview_get_native_handle, _TCFFIPOINTER _I32);
+DEFINE_HL_PRIM(_I32, hl_webview_print_to_pdf, _TCFFIPOINTER _STRING _F64 _F64 _F64 _F64 _F64 _F64 _I32 _I32 _F64 _I32 _DYN);
+DEFINE_HL_PRIM(_I32, hl_webview_process_events, _NO_ARG);
 DEFINE_HL_PRIM(_VOID, hl_webview_webview2_controller_set_bounds, _TCFFIPOINTER _I32 _I32);

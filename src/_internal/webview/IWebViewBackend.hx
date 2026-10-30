@@ -1,6 +1,7 @@
 package _internal.webview;
 
 import webview.NativeHandleKind;
+import webview.PdfOptions;
 import webview.WebViewHandle;
 import webview.WebViewHint;
 
@@ -29,6 +30,7 @@ interface IWebViewBackend
 	function historyForward():Void;
 	function navigate(url:String):Void;
 	function postMessage(message:String):Void;
+	function printToPDF(path:String, options:PdfOptions, onComplete:Bool->String->Void):Void;
 	function reload():Void;
 	function run():Void;
 	function setBounds(width:Int, height:Int):Void;

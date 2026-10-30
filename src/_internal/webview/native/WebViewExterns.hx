@@ -2,7 +2,7 @@ package _internal.webview.native;
 
 import webview.WebViewHandle;
 
-#if cpp
+#if (cpp && !android)
 import cpp.ConstCharStar;
 
 @:keep
@@ -13,7 +13,7 @@ import cpp.ConstCharStar;
 extern class WebViewExterns
 {
 	static function create(debug:Int, window:WebViewHandle, userAgent:ConstCharStar, mediaPlaybackRequiresUserAction:Int, enableContextMenu:Int,
-		enableKeyboardShortcuts:Int, enableDevTools:Int, enableStatusBar:Int, enableZoom:Int):WebViewHandle;
+		enableKeyboardShortcuts:Int, enableDevTools:Int, enableStatusBar:Int, enableZoom:Int, startHidden:Int):WebViewHandle;
 	static function destroy(w:WebViewHandle):Void;
 	static function setSize(w:WebViewHandle, width:Int, height:Int, hints:Int):Int;
 	static function navigate(w:WebViewHandle, url:ConstCharStar):Int;
@@ -36,7 +36,10 @@ extern class WebViewExterns
 	static function getLocation(w:WebViewHandle):String;
 	static function getTitle(w:WebViewHandle):String;
 	static function getNativeHandle(w:WebViewHandle, kind:Int):WebViewHandle;
+	static function printToPdf(w:WebViewHandle, path:ConstCharStar, pageWidth:Float, pageHeight:Float, marginTop:Float, marginRight:Float,
+		marginBottom:Float, marginLeft:Float, landscape:Int, printBackground:Int, scale:Float, repeatTableHeaders:Int, onComplete:Dynamic):Int;
 	static function webView2ControllerSetBounds(controller:WebViewHandle, width:Int, height:Int):Void;
+	static function processEvents():Int;
 }
 #elseif hl
 import hl.Bytes;
@@ -46,7 +49,7 @@ import hl.Bytes;
 extern class WebViewExterns
 {
 	static function create(debug:Int, window:WebViewHandle, userAgent:String, mediaPlaybackRequiresUserAction:Int, enableContextMenu:Int,
-		enableKeyboardShortcuts:Int, enableDevTools:Int, enableStatusBar:Int, enableZoom:Int):WebViewHandle;
+		enableKeyboardShortcuts:Int, enableDevTools:Int, enableStatusBar:Int, enableZoom:Int, startHidden:Int):WebViewHandle;
 	static function destroy(w:WebViewHandle):Void;
 	static function set_size(w:WebViewHandle, width:Int, height:Int, hints:Int):Int;
 	static function navigate(w:WebViewHandle, url:String):Int;
@@ -70,7 +73,10 @@ extern class WebViewExterns
 	static function get_location(w:WebViewHandle):Bytes;
 	static function get_title(w:WebViewHandle):Bytes;
 	static function get_native_handle(w:WebViewHandle, kind:Int):WebViewHandle;
+	static function print_to_pdf(w:WebViewHandle, path:String, pageWidth:Float, pageHeight:Float, marginTop:Float, marginRight:Float,
+		marginBottom:Float, marginLeft:Float, landscape:Int, printBackground:Int, scale:Float, repeatTableHeaders:Int, onComplete:Dynamic):Int;
 	static function webview2_controller_set_bounds(controller:WebViewHandle, width:Int, height:Int):Void;
+	static function process_events():Int;
 
 	public static inline function setSize(w:WebViewHandle, width:Int, height:Int, hints:Int):Int
 		return set_size(w, width, height, hints);
@@ -122,10 +128,18 @@ extern class WebViewExterns
 	public static inline function getNativeHandle(w:WebViewHandle, kind:Int):WebViewHandle
 		return get_native_handle(w, kind);
 
+	public static inline function printToPdf(w:WebViewHandle, path:String, pageWidth:Float, pageHeight:Float, marginTop:Float, marginRight:Float,
+			marginBottom:Float, marginLeft:Float, landscape:Int, printBackground:Int, scale:Float, repeatTableHeaders:Int, onComplete:Dynamic):Int
+		return print_to_pdf(w, path, pageWidth, pageHeight, marginTop, marginRight, marginBottom, marginLeft, landscape, printBackground, scale,
+			repeatTableHeaders, onComplete);
+
 	public static inline function webView2ControllerSetBounds(controller:WebViewHandle, width:Int, height:Int):Void
 	{
 		webview2_controller_set_bounds(controller, width, height);
 	}
+
+	public static inline function processEvents():Int
+		return process_events();
 
 	private static inline function __bytesToString(value:Bytes):String
 	{
@@ -136,7 +150,7 @@ extern class WebViewExterns
 class WebViewExterns
 {
 	public static inline function create(debug:Int, window:Dynamic, userAgent:String, mediaPlaybackRequiresUserAction:Int, enableContextMenu:Int,
-			enableKeyboardShortcuts:Int, enableDevTools:Int, enableStatusBar:Int, enableZoom:Int):Dynamic
+			enableKeyboardShortcuts:Int, enableDevTools:Int, enableStatusBar:Int, enableZoom:Int, startHidden:Int):Dynamic
 		return null;
 
 	public static inline function destroy(w:Dynamic):Void {}
@@ -204,6 +218,13 @@ class WebViewExterns
 	public static inline function getNativeHandle(w:Dynamic, kind:Int):Dynamic
 		return null;
 
+	public static inline function printToPdf(w:Dynamic, path:String, pageWidth:Float, pageHeight:Float, marginTop:Float, marginRight:Float,
+			marginBottom:Float, marginLeft:Float, landscape:Int, printBackground:Int, scale:Float, repeatTableHeaders:Int, onComplete:Dynamic):Int
+		return -1;
+
 	public static inline function webView2ControllerSetBounds(controller:Dynamic, width:Int, height:Int):Void {}
+
+	public static inline function processEvents():Int
+		return 0;
 }
 #end

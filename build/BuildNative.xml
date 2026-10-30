@@ -37,9 +37,73 @@
 		</files>
 	</section>
 
+	<!-- Linux: the vendored webview.h GTK backend. GTK and WebKitGTK flags come from pkg-config through
+	     ExtraParamsMacro, because hxcpp build files cannot run it themselves. The library's own group keeps
+	     those flags, and hxcpp's precompiled header, away from the generated Haxe sources; the haxe tag
+	     gives it the same hxcpp ABI defines. -->
+	<section if="linux" unless="android || windows">
+		<files id="stagewebview-native" tags="haxe,static">
+			<compilerflag value="-I${this_dir}/.." />
+			<compilerflag value="-I${HXCPP}/include" />
+			<file name="${this_dir}/../lib/WebViewBackendPlatform.cpp" />
+			<file name="${this_dir}/../lib/gtk/GtkWebView.cpp" />
+			<file name="${this_dir}/../lib/gtk/GtkHostWindow.cpp" />
+			<file name="${this_dir}/../lib/WebViewBindings.cpp" />
+			<file name="${this_dir}/../lib/WindowBindings.cpp" />
+		</files>
+
+		<files id="haxe">
+			<compilerflag value="-I${this_dir}/.." />
+		</files>
+
+		<files id="__main__">
+			<compilerflag value="-I${this_dir}/.." />
+		</files>
+	</section>
+
+	<!-- macOS and iOS: one WKWebView engine in Objective-C++ (ARC) for both. -->
+	<section if="macos || iphone">
+		<files id="stagewebview-native" tags="haxe,static">
+			<compilerflag value="-I${this_dir}/.." />
+			<compilerflag value="-I${HXCPP}/include" />
+			<file name="${this_dir}/../lib/WebViewBackendPlatform.cpp" />
+			<file name="${this_dir}/../lib/WebViewBindings.cpp" />
+			<file name="${this_dir}/../lib/WindowBindings.cpp" />
+		</files>
+
+		<files id="stagewebview-apple" tags="haxe,static">
+			<compilerflag value="-I${this_dir}/.." />
+			<compilerflag value="-fobjc-arc" />
+			<file name="${this_dir}/../lib/apple/AppleWebView.mm" />
+			<file name="${this_dir}/../lib/apple/AppleHostWindow.mm" />
+		</files>
+
+		<files id="haxe">
+			<compilerflag value="-I${this_dir}/.." />
+		</files>
+
+		<files id="__main__">
+			<compilerflag value="-I${this_dir}/.." />
+		</files>
+	</section>
+
 	<target id="haxe">
 		<section if="windows" unless="HXCPP_M32">
 			<lib name="${this_dir}/../lib/windows/x64/WebView2Loader.dll.lib" />
+		</section>
+
+		<section if="linux" unless="android || windows">
+			<files id="stagewebview-native" />
+		</section>
+
+		<section if="macos || iphone">
+			<files id="stagewebview-native" />
+			<files id="stagewebview-apple" />
+		</section>
+
+		<section if="macos">
+			<vflag name="-framework" value="WebKit" />
+			<vflag name="-framework" value="Cocoa" />
 		</section>
 	</target>
 

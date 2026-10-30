@@ -9,6 +9,7 @@ import sys.io.File;
 
 class ExtraParamsMacro
 {
+	private static var __configuredGtk:Bool = false;
 	private static var __definedRoot:Bool = false;
 	private static var __definedWindowsTarget:Bool = false;
 	private static var __included:Bool = false;
@@ -35,6 +36,16 @@ class ExtraParamsMacro
 			__definedWindowsTarget = true;
 		}
 
+		if (!Context.defined("stagewebview_supported") && __isSupportedTarget())
+		{
+			Compiler.define("stagewebview_supported");
+		}
+
+		if (!Context.defined("display") && Context.defined("cpp") && __isLinuxDesktopTarget())
+		{
+			__configureGtk();
+		}
+
 		if (!Context.defined("display"))
 		{
 			if (Context.defined("hl"))
@@ -59,6 +70,93 @@ class ExtraParamsMacro
 			Compiler.addClassPath(openflSourcePath);
 			__included = true;
 		}
+	}
+
+	// Native targets with a backend: hxcpp on Windows, Linux, macOS, iOS and Android, and HashLink on Windows.
+	private static function __isSupportedTarget():Bool
+	{
+		if (Context.defined("cpp"))
+		{
+			return Context.defined("android") || Context.defined("ios") || ["Windows", "Linux", "Mac"].indexOf(Sys.systemName()) >= 0;
+		}
+
+		return Context.defined("hl") && Sys.systemName() == "Windows";
+	}
+
+	private static function __isLinuxDesktopTarget():Bool
+	{
+		if (Context.defined("android") || Context.defined("ios") || Context.defined("windows") || Context.defined("mac"))
+		{
+			return false;
+		}
+
+		return Context.defined("linux") || Sys.systemName() == "Linux";
+	}
+
+	// hxcpp build files cannot call pkg-config, so the GTK and WebKitGTK flags are resolved here and
+	// attached to the native backend class as build XML: compiler flags for the library's files, libraries for the link.
+	private static function __configureGtk():Void
+	{
+		if (__configuredGtk)
+		{
+			return;
+		}
+
+		__configuredGtk = true;
+
+		var packages = ["gtk+-3.0", "webkit2gtk-4.1", "x11"];
+		var cflags = __pkgConfig(["--cflags"].concat(packages));
+		var libs = __pkgConfig(["--libs"].concat(packages));
+		if (cflags == null || libs == null)
+		{
+			Context.fatalError("StageWebView on Linux needs GTK 3 and WebKitGTK 4.1 development files. On Debian or Ubuntu: "
+				+ "sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev", Context.currentPos());
+			return;
+		}
+
+		var xml = new StringBuf();
+		xml.add("<files id='stagewebview-native'>");
+		for (flag in cflags)
+		{
+			xml.add("<compilerflag value='" + __escapeXml(flag) + "'/>");
+		}
+		xml.add("</files><target id='haxe'>");
+		for (flag in libs)
+		{
+			xml.add("<lib name='" + __escapeXml(flag) + "'/>");
+		}
+		xml.add("</target>");
+
+		var meta = "@:buildXml(\"" + xml.toString() + "\")";
+		// hxcpp honours one @:buildXml per class and WebViewExterns already has one, so attach to the backend class.
+		Compiler.addMetadata(meta, "_internal.webview.WebViewBackend");
+	}
+
+	private static function __pkgConfig(arguments:Array<String>):Array<String>
+	{
+		try
+		{
+			var process = new sys.io.Process("pkg-config", arguments);
+			var output = StringTools.trim(process.stdout.readAll().toString());
+			var exitCode = process.exitCode();
+			process.close();
+
+			if (exitCode != 0)
+			{
+				return null;
+			}
+
+			return [for (flag in ~/\s+/g.split(output)) if (flag != "") flag];
+		}
+		catch (_:Dynamic)
+		{
+			return null;
+		}
+	}
+
+	private static function __escapeXml(value:String):String
+	{
+		return StringTools.htmlEscape(value, true);
 	}
 
 	private static function __prepareHashLinkOutput(libraryRoot:String):Void
@@ -106,7 +204,11 @@ class ExtraParamsMacro
 		}
 
 		__preparedCppOutput = outputDirectory;
-		__copyWindowsRuntime(libraryRoot, outputDirectory);
+
+		if (Sys.systemName() == "Windows")
+		{
+			__copyWindowsRuntime(libraryRoot, outputDirectory);
+		}
 	}
 
 	private static function __copyHashLinkRuntime(libraryRoot:String, outputDirectory:String):Void

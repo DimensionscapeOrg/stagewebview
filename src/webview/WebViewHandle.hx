@@ -1,6 +1,6 @@
 package webview;
 
-#if cpp
+#if (cpp && !android)
 import cpp.Pointer;
 import cpp.Void as CVoid;
 
@@ -29,6 +29,15 @@ typedef WebViewHandle = Pointer<CVoid>;
 	integration.
 **/
 abstract WebViewHandle(Dynamic) from Dynamic to Dynamic {}
+#elseif android
+/**
+	A native handle used by the library to reference an operating-system window,
+	webview instance, or other backend-owned object.
+
+	On Android the webview lives in Java, so handles are the identifiers the Java
+	host hands out.
+**/
+typedef WebViewHandle = Dynamic;
 #else
 /**
 	A native handle used by the library to reference an operating-system window,
