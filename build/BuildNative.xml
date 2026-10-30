@@ -74,6 +74,7 @@
 		<files id="stagewebview-apple" tags="haxe,static">
 			<compilerflag value="-I${this_dir}/.." />
 			<compilerflag value="-fobjc-arc" />
+			<compilerflag value="-std=c++11" />
 			<file name="${this_dir}/../lib/apple/AppleWebView.mm" />
 			<file name="${this_dir}/../lib/apple/AppleHostWindow.mm" />
 		</files>

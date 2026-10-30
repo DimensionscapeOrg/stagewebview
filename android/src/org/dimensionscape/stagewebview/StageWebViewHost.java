@@ -306,15 +306,30 @@ public final class StageWebViewHost {
 		withView(id, new ViewAction() {
 			@Override
 			public void run(Entry entry, WebView view) {
+				final int width = Math.max(1, view.getWidth());
+				final int height = Math.max(1, view.getHeight());
+				final Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+				Activity activity = Extension.mainActivity;
+
+				// A software View.draw leaves out GPU-composited content such as <canvas>, so a view on screen is
+				// copied from the window instead. Hidden views are never composited and are drawn directly.
+				if (Build.VERSION.SDK_INT >= 26 && view.isAttachedToWindow() && activity != null) {
+					int[] location = new int[2];
+					view.getLocationInWindow(location);
+					android.graphics.Rect area = new android.graphics.Rect(location[0], location[1], location[0] + width, location[1] + height);
+					android.view.PixelCopy.request(activity.getWindow(), area, bitmap, new android.view.PixelCopy.OnPixelCopyFinishedListener() {
+						@Override
+						public void onPixelCopyFinished(int copyResult) {
+							result[0] = copyResult == android.view.PixelCopy.SUCCESS ? encode(bitmap, format) : null;
+							done.countDown();
+						}
+					}, UI);
+					return;
+				}
+
 				try {
-					int width = Math.max(1, view.getWidth());
-					int height = Math.max(1, view.getHeight());
-					Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 					view.draw(new Canvas(bitmap));
-					ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-					bitmap.compress(format == 1 ? Bitmap.CompressFormat.JPEG : Bitmap.CompressFormat.PNG, 90, bytes);
-					bitmap.recycle();
-					result[0] = Base64.encodeToString(bytes.toByteArray(), Base64.NO_WRAP);
+					result[0] = encode(bitmap, format);
 				} finally {
 					done.countDown();
 				}
@@ -458,6 +473,13 @@ public final class StageWebViewHost {
 		params.leftMargin = x;
 		params.topMargin = y;
 		return params;
+	}
+
+	private static String encode(Bitmap bitmap, int format) {
+		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		bitmap.compress(format == 1 ? Bitmap.CompressFormat.JPEG : Bitmap.CompressFormat.PNG, 90, bytes);
+		bitmap.recycle();
+		return Base64.encodeToString(bytes.toByteArray(), Base64.NO_WRAP);
 	}
 
 	private static int mils(double inches) {

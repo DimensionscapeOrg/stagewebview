@@ -1,0 +1,212 @@
+name: CI
+
+# Builds the library on every platform with a backend and, where the runner can show a webview, runs the
+# PDF samples and checks the PDF they write: two pages, the table header repeated on the second.
+#
+# Dependencies are the exact lib.haxe.org releases the rem client pins, installed into a project-local
+# haxelib repository.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  HAXE_VERSION: 4.3.7
+  STAGEWEBVIEW_SAMPLE_EXIT: "1"
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned haxelibs
+        shell: bash
+        run: .github/scripts/install-haxelibs.sh
+      - run: pip install pypdf==5.1.0
+      - name: Unit tests (interp)
+        run: haxe build/tests.hxml
+      - name: Headless PDF sample (hxcpp)
+        shell: bash
+        run: |
+          haxe samples/pdf/build-cpp.hxml -D HXCPP_M64
+          bin/samples/pdf/cpp/Main.exe "$GITHUB_WORKSPACE/report-windows.pdf"
+          python .github/scripts/check_report_pdf.py report-windows.pdf
+      - name: OpenFL report sample
+        shell: bash
+        run: |
+          haxelib run lime build project-report.xml windows
+          cd bin/samples/report/windows/bin
+          ./stagewebview-report.exe
+          store="$APPDATA/Dimensionscape/stagewebview-report"
+          cat "$store/report-status.txt"
+          grep -q '^OK:' "$store/report-status.txt"
+          python "$GITHUB_WORKSPACE/.github/scripts/check_report_pdf.py" "$store/stagewebview-report.pdf"
+          cp "$store/stagewebview-report.pdf" "$GITHUB_WORKSPACE/report-windows-openfl.pdf"
+          cp "$store/report-preview.png" "$GITHUB_WORKSPACE/preview-windows.png"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows
+          path: |
+            report-windows*.pdf
+            preview-windows.png
+
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+      - name: Install GTK, WebKitGTK and Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xauth libgl1-mesa-dri libglu1-mesa
+      - name: Install pinned haxelibs
+        run: .github/scripts/install-haxelibs.sh
+      - run: pip install pypdf==5.1.0
+      - name: Unit tests (interp)
+        run: haxe build/tests.hxml
+      - name: Headless PDF sample (hxcpp)
+        run: |
+          haxe samples/pdf/build-cpp.hxml -D HXCPP_M64
+          xvfb-run -a -s "-screen 0 1280x1024x24" bin/samples/pdf/cpp/Main "$GITHUB_WORKSPACE/report-linux.pdf"
+          python3 .github/scripts/check_report_pdf.py report-linux.pdf
+      - name: OpenFL report sample
+        run: |
+          haxelib run lime build project-report.xml linux
+          cd bin/samples/report/linux/bin
+          xvfb-run -a -s "-screen 0 1280x1100x24" ./stagewebview-report
+          store="$HOME/.local/share/Dimensionscape/stagewebview-report"
+          cat "$store/report-status.txt"
+          grep -q '^OK:' "$store/report-status.txt"
+          python3 "$GITHUB_WORKSPACE/.github/scripts/check_report_pdf.py" "$store/stagewebview-report.pdf"
+          cp "$store/stagewebview-report.pdf" "$GITHUB_WORKSPACE/report-linux-openfl.pdf"
+          cp "$store/report-preview.png" "$GITHUB_WORKSPACE/preview-linux.png"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux
+          path: |
+            report-linux*.pdf
+            preview-linux.png
+
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+      - name: Install pinned haxelibs
+        run: .github/scripts/install-haxelibs.sh
+      - run: python3 -m pip install --break-system-packages pypdf==5.1.0
+      - name: Headless PDF sample (hxcpp)
+        run: |
+          haxe samples/pdf/build-cpp.hxml -D HXCPP_ARM64
+          bin/samples/pdf/cpp/Main "$GITHUB_WORKSPACE/report-macos.pdf"
+          python3 .github/scripts/check_report_pdf.py report-macos.pdf
+      - name: OpenFL report sample
+        run: |
+          haxelib run lime build project-report.xml mac
+          app=$(find bin/samples/report/macos -path '*Contents/MacOS/*' -type f -perm -u+x | head -1)
+          "$app"
+          store="$HOME/Library/Application Support/Dimensionscape/stagewebview-report"
+          cat "$store/report-status.txt"
+          grep -q '^OK:' "$store/report-status.txt"
+          python3 "$GITHUB_WORKSPACE/.github/scripts/check_report_pdf.py" "$store/stagewebview-report.pdf"
+          cp "$store/stagewebview-report.pdf" "$GITHUB_WORKSPACE/report-macos-openfl.pdf"
+          cp "$store/report-preview.png" "$GITHUB_WORKSPACE/preview-macos.png"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos
+          path: |
+            report-macos*.pdf
+            preview-macos.png
+
+  # Compiles the native glue for the iOS simulator (x86_64, hxcpp's simulator toolchain) through plain hxcpp,
+  # which needs neither an Xcode project nor Lime. Running on iOS is not automated.
+  ios-native:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+      - name: Install pinned haxelibs
+        run: .github/scripts/install-haxelibs.sh
+      - name: Compile for the iOS simulator
+        run: haxe samples/pdf/build-cpp.hxml -D iphonesim -D HXCPP_M64 -D static_link
+
+  # The full Lime iOS app build. Lime 8.3.2's static iOS build has had mbedtls symbol problems, so this
+  # job is kept apart from ios-native to show which of the two fails.
+  ios-lime:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+      - name: Install pinned haxelibs
+        run: .github/scripts/install-haxelibs.sh
+      - name: Build the OpenFL report sample for the simulator
+        run: haxelib run lime build project-report.xml ios -simulator
+
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install pinned haxelibs
+        run: .github/scripts/install-haxelibs.sh
+      - run: pip install pypdf==5.1.0
+      - name: Configure Lime for Android
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "ndk;21.4.7075529" > /dev/null
+          haxelib run lime config ANDROID_SDK "$ANDROID_SDK_ROOT"
+          haxelib run lime config ANDROID_NDK_ROOT "$ANDROID_SDK_ROOT/ndk/21.4.7075529"
+          haxelib run lime config JAVA_HOME "$JAVA_HOME"
+          haxelib run lime config ANDROID_SETUP true
+      - name: Build the OpenFL report sample
+        run: haxelib run lime build project-report.xml android -debug -x86_64
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          script: .github/scripts/run-android-report.sh
+      - run: python3 .github/scripts/check_report_pdf.py report-android.pdf
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android
+          path: |
+            report-android.pdf
+            preview-android.png
+            report-android-status.txt

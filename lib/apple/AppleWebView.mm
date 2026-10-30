@@ -34,6 +34,8 @@ static const CGFloat HIDDEN_HEIGHT = 1366;
 @property(nonatomic, assign) stagewebview::WebViewPdfOptions options;
 @property(nonatomic, strong) NSURL *url;
 @property(nonatomic, assign) BOOL tablesSplit;
+// Keeps the delegate alive for NSPrintOperation's didRunSelector even if the webview is disposed mid-print.
+@property(nonatomic, strong) id keepAlive;
 @end
 
 @implementation StageWebViewPdfJob
@@ -77,6 +79,15 @@ public:
 		#endif
 
 		PlatformView *host = (__bridge PlatformView *)window;
+
+		#if !TARGET_OS_IPHONE
+		if (host == nil)
+		{
+			// Set up NSApplication before WebKit is first touched in a plain Haxe program.
+			ensureApplication(options.startHidden != 1);
+		}
+		#endif
+
 		CGRect frame = host != nil ? host.bounds : CGRectMake(0, 0, HIDDEN_WIDTH, HIDDEN_HEIGHT);
 		view = [[WKWebView alloc] initWithFrame:frame configuration:configuration];
 		view.navigationDelegate = delegate;
@@ -110,8 +121,6 @@ public:
 		// iOS: an unattached view still loads, lays out and prints. A visible top-level window is not offered.
 		(void)options;
 		#else
-		ensureApplication(options.startHidden != 1);
-
 		NSRect rect = options.startHidden == 1 ? NSMakeRect(-20000, -20000, HIDDEN_WIDTH, HIDDEN_HEIGHT) : NSMakeRect(0, 0, 1024, 768);
 		NSWindowStyleMask style = options.startHidden == 1
 			? NSWindowStyleMaskBorderless
@@ -384,13 +393,28 @@ public:
 			return 0;
 		}
 
+		// Reach this object through the delegate: the destructor clears delegate.owner, so a webview disposed
+		// while the script runs is noticed instead of used.
 		std::string script = tableHeaderScript(options, WEBKIT_PRINT_PIXELS_PER_INCH);
+		StageWebViewDelegate *owning = delegate;
 		[view evaluateJavaScript:[NSString stringWithUTF8String:script.c_str()]
 			   completionHandler:^(id result, NSError *error) {
 				   (void)result;
 				   (void)error;
+				   ApplePlatformWebView *owner = owning.owner;
+				   if (owner == nullptr)
+				   {
+					   if (job.callback != nullptr)
+					   {
+						   dispatch_async(dispatch_get_main_queue(), ^{
+							   job.callback(job.userData, false, "The webview was disposed while printing");
+						   });
+					   }
+					   return;
+				   }
+
 				   job.tablesSplit = YES;
-				   startPrint(job);
+				   owner->startPrint(job);
 			   }];
 		return 0;
 	}
@@ -539,6 +563,7 @@ private:
 		// (asynchronously) rather than through runOperation, which returns before pages arrive.
 		if (view.window != nil)
 		{
+			job.keepAlive = delegate;
 			[operation runOperationModalForWindow:view.window
 										 delegate:delegate
 								   didRunSelector:@selector(printOperationDidRun:success:contextInfo:)
