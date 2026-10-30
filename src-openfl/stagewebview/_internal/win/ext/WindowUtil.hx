@@ -83,7 +83,48 @@ class WindowUtil
 	}
 }
 
-#if cpp
+#if android
+// Android: the "window" is the activity and children are FrameLayouts over SDL's surface, managed by the
+// Java host. Handles are the integer ids it hands out; ACTIVITY stands for the activity itself.
+private class WindowBindings
+{
+	private static inline final ACTIVITY:Int = -1;
+
+	public static inline function getWindowHandle(name:String):WebViewHandle
+		return ACTIVITY;
+
+	public static inline function createChildWindow(windowHandle:WebViewHandle, x:Int, y:Int, width:Int, height:Int):WebViewHandle
+		return _internal.webview.android.AndroidHost.createContainer(x, y, width, height);
+
+	public static inline function showWindow(handle:WebViewHandle):Void
+	{
+		if (handle != ACTIVITY) _internal.webview.android.AndroidHost.setContainerVisible(handle, true);
+	}
+
+	public static inline function hideWindow(handle:WebViewHandle):Void
+	{
+		if (handle != ACTIVITY) _internal.webview.android.AndroidHost.setContainerVisible(handle, false);
+	}
+
+	public static inline function destroyWindow(handle:WebViewHandle):Void
+	{
+		if (handle != ACTIVITY) _internal.webview.android.AndroidHost.destroyContainer(handle);
+	}
+
+	public static inline function moveWindow(handle:WebViewHandle, x:Int, y:Int, width:Int, height:Int):Void
+	{
+		if (handle != ACTIVITY) _internal.webview.android.AndroidHost.moveContainer(handle, x, y, width, height);
+	}
+
+	public static inline function setFocus(handle:WebViewHandle):Void
+	{
+		if (handle == ACTIVITY) _internal.webview.android.AndroidHost.focusHost();
+	}
+
+	public static inline function getHandleKey(handle:WebViewHandle):String
+		return Std.string(handle);
+}
+#elseif cpp
 @:noPrivateAccess
 @:buildXml("<section if=\"stagewebview_root\"><include name=\"${stagewebview_root}/build/BuildNative.xml\"/></section><section unless=\"stagewebview_root\"><include name=\"${haxelib:StageWebView}/build/BuildNative.xml\"/></section>")
 @:include("lib/WindowBindings.h")

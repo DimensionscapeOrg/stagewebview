@@ -7,4 +7,10 @@
 	<assets path="lib/windows/x64" rename="" exclude="WebView2Loader.dll.lib" unless="HXCPP_M32" if="windows" />
 	<assets path="lib/windows/EBWebView/x64" rename="EBWebView/x64" unless="HXCPP_M32" if="windows" />
 
+	<!-- Android: the Java host and the PrintDocumentAdapter helper. -->
+	<java path="android/src" if="android" />
+
+	<!-- macOS and iOS: the WKWebView engine. -->
+	<dependency name="WebKit.framework" if="ios || mac" />
+
 </extension>

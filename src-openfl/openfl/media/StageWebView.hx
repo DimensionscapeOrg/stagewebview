@@ -25,6 +25,7 @@ import openfl.geom.Rectangle;
 import openfl.utils.ByteArray;
 import stagewebview._internal.win.WinUtil;
 import webview.NativeHandleKind;
+import webview.PdfOptions;
 import webview.WebView;
 import webview.WebViewHandle;
 import webview.WebViewOptions;
@@ -36,8 +37,12 @@ import webview.WebViewOptions;
 	events, and delegates browser work to the library-owned `webview.WebView`
 	API.
 
+	Supported on Windows (WebView2), Linux (WebKitGTK), macOS and iOS
+	(WKWebView) and Android (`android.webkit.WebView`). The view is a native
+	child window or view placed over the OpenFL stage at `viewPort`.
+
 	Accepted constructor configuration fields mirror the AIR reference as closely
-	as possible on Windows:
+	as possible:
 
 	- `mediaPlaybackRequiresUserAction`
 	- `userAgent`
@@ -107,6 +112,9 @@ final class StageWebView extends EventDispatcher
 	private var __webViewOptions:WebViewOptions;
 	private var __windowMouseDownListener:Float->Float->MouseButton->Void;
 	private var __windowMouseDownTarget:Window;
+	#if !windows
+	private var __pumpStage:Stage;
+	#end
 
 	private static var __focusedWebView:StageWebView;
 	private static inline final __CAPTURE_FORMAT_PNG:Int = 0;
@@ -353,6 +361,29 @@ final class StageWebView extends EventDispatcher
 		}
 	}
 
+	/**
+		Saves the loaded page as a PDF file. See `webview.WebView.printToPDF()`.
+
+		@param path Destination file.
+		@param options Paper size, margins and other page settings.
+		@param onComplete Receives `true` and `null` on success, or `false` and an
+			error message.
+	**/
+	public function printToPDF(path:String, ?options:PdfOptions, ?onComplete:(success:Bool, error:String)->Void):Void
+	{
+		if (__webView == null)
+		{
+			if (onComplete != null)
+			{
+				onComplete(false, "The StageWebView must be attached to a stage before printing.");
+			}
+
+			return;
+		}
+
+		__webView.printToPDF(path, options, onComplete);
+	}
+
 	/** Reloads the current page. */
 	public function reload():Void
 	{
@@ -495,6 +526,10 @@ final class StageWebView extends EventDispatcher
 		__webView = new WebView(cast __childWindowHandle, __webViewOptions);
 		__configureCallbacks();
 
+		#if !windows
+		__setPumpStage(__stage);
+		#end
+
 		for (script in __pendingInitScripts)
 		{
 			__webView.addInitScript(script);
@@ -512,6 +547,10 @@ final class StageWebView extends EventDispatcher
 
 	private function __destroyNativeView():Void
 	{
+		#if !windows
+		__setPumpStage(null);
+		#end
+
 		if (__focusedWebView == this)
 		{
 			__focusedWebView = null;
@@ -657,6 +696,15 @@ final class StageWebView extends EventDispatcher
 		var width = Std.int(Math.max(0, __viewport.width));
 		var height = Std.int(Math.max(0, __viewport.height));
 
+		#if (mac || ios)
+		// Stage coordinates are pixels; AppKit and UIKit place views in points.
+		var scale = __stage.window != null && __stage.window.scale > 0 ? __stage.window.scale : 1.0;
+		x = Std.int(x / scale);
+		y = Std.int(y / scale);
+		width = Std.int(width / scale);
+		height = Std.int(height / scale);
+		#end
+
 		WinUtil.moveWindowSized(__childWindowHandle, x, y, width, height);
 
 		if (width <= 0 || height <= 0)
@@ -665,11 +713,15 @@ final class StageWebView extends EventDispatcher
 			return;
 		}
 
+		#if windows
+		// WebView2 renders into webview.h's widget HWND inside the child window. Other platforms size the
+		// web view with its container.
 		var widgetHandle:WebViewHandle = cast __webView.getNativeHandle(NativeHandleKind.UI_WIDGET);
 		if (widgetHandle != null)
 		{
 			WinUtil.moveWindowSized(widgetHandle, 0, 0, width, height);
 		}
+		#end
 
 		__webView.setBounds(width, height);
 		WinUtil.showWindow(__childWindowHandle);
@@ -726,7 +778,7 @@ final class StageWebView extends EventDispatcher
 
 	private static inline function get_isSupported():Bool
 	{
-		#if (windows || stagewebview_windows)
+		#if (windows || stagewebview_windows || stagewebview_supported)
 		return true;
 		#else
 		return false;
@@ -792,6 +844,34 @@ final class StageWebView extends EventDispatcher
 		return value;
 	}
 
+	#if !windows
+	// Linux (GTK) and Android deliver webview events only when pumped; Windows keeps its own message loop.
+	private function __setPumpStage(stage:Stage):Void
+	{
+		if (__pumpStage == stage)
+		{
+			return;
+		}
+
+		if (__pumpStage != null)
+		{
+			__pumpStage.removeEventListener(Event.ENTER_FRAME, __onPumpFrame);
+		}
+
+		__pumpStage = stage;
+
+		if (__pumpStage != null)
+		{
+			__pumpStage.addEventListener(Event.ENTER_FRAME, __onPumpFrame);
+		}
+	}
+
+	private function __onPumpFrame(_:Event):Void
+	{
+		WebView.processEvents();
+	}
+	#end
+
 	private function set_stage(value:Stage):Stage
 	{
 		if (__stage == value)
@@ -810,6 +890,10 @@ final class StageWebView extends EventDispatcher
 
 		if (__stage == null)
 		{
+			#if !windows
+			__setPumpStage(null);
+			#end
+
 			if (__focusedWebView == this)
 			{
 				__focusedWebView = null;
