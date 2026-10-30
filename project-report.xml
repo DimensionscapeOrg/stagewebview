@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	<meta
+		title="StageWebView Report"
+		package="com.dimensionscape.stagewebview.report"
+		version="1.0.0"
+		company="Dimensionscape" />
+
+	<app main="Main" file="stagewebview-report" path="bin/samples/report" />
+
+	<window width="1100" height="1000" fps="60" background="#F4F6F8" />
+	<window if="cpp" vsync="false" antialiasing="0" />
+	<window if="mobile" orientation="portrait" fullscreen="false" />
+
+	<source path="src" />
+	<source path="src-openfl" />
+	<source path="samples/common/src" />
+	<source path="samples/report/src" />
+	<include name="include.xml" />
+
+	<haxelib name="openfl" />
+
+</project>

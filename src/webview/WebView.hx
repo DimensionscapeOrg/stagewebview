@@ -389,8 +389,10 @@ class WebView
 		macOS and iOS, and `PrintDocumentAdapter` on Android. It works for a
 		webview created with `startHidden`, so no window has to be visible.
 
-		The callback runs on the thread that calls `processEvents()`. On Windows,
-		macOS and iOS the host's normal event loop also delivers it.
+		The callback runs from the event loop on the thread that calls
+		`processEvents()`, never from inside the engine's own handler, so it may
+		dispose this webview or create another. On Windows, macOS and iOS the
+		host's normal event loop also delivers it.
 
 		@param path Destination file. Relative paths resolve against the current
 			working directory.

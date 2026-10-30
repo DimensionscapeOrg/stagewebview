@@ -337,13 +337,21 @@ private:
 				pending->owner->evaluate(tableHeaderRestoreScript(), nullptr, nullptr);
 			}
 
-			if (pending->callback != nullptr)
-			{
-				pending->callback(pending->userData, !pending->failed, pending->error);
-			}
-
-			delete pending;
 			g_object_unref(finished);
+
+			// Report from an idle callback, outside WebKit's signal emission, so the callback may dispose this
+			// webview or create another.
+			g_idle_add(+[](gpointer data) -> gboolean
+			{
+				auto *done = static_cast<GtkPdfRequest *>(data);
+				if (done->callback != nullptr)
+				{
+					done->callback(done->userData, !done->failed, done->error);
+				}
+
+				delete done;
+				return G_SOURCE_REMOVE;
+			}, pending);
 		}), request);
 
 		webkit_print_operation_print(operation);

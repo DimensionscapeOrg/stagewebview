@@ -402,10 +402,15 @@ public:
 			evaluateJavaScript(tableHeaderRestoreScript().c_str());
 		}
 
-		if (job.callback != nullptr)
-		{
-			job.callback(job.userData, success, message);
-		}
+		// Report on a later turn of the main queue, outside WebKit's and AppKit's callbacks, so the callback
+		// may dispose this webview or create another.
+		std::string reported = message;
+		dispatch_async(dispatch_get_main_queue(), ^{
+			if (job.callback != nullptr)
+			{
+				job.callback(job.userData, success, reported);
+			}
+		});
 	}
 
 	// Called by StageWebViewDelegate.
@@ -504,9 +509,7 @@ private:
 		NSError *error = nil;
 		BOOL written = pages > 0 && [data writeToURL:job.url options:NSDataWritingAtomic error:&error];
 		std::string message = written ? "" : (error != nil ? error.localizedDescription.UTF8String : "UIPrintPageRenderer produced no pages");
-		dispatch_async(dispatch_get_main_queue(), ^{
-			finishPrint(job, written, message);
-		});
+		finishPrint(job, written, message);
 		#else
 		NSPrintInfo *info = [[NSPrintInfo alloc] initWithDictionary:@{
 			NSPrintJobDisposition: NSPrintSaveJob,
@@ -674,7 +677,9 @@ int PlatformWebView::processEvents()
 	}
 	else if (job.callback != nullptr)
 	{
-		job.callback(job.userData, false, "The webview was disposed while printing");
+		dispatch_async(dispatch_get_main_queue(), ^{
+			job.callback(job.userData, false, "The webview was disposed while printing");
+		});
 	}
 }
 #endif

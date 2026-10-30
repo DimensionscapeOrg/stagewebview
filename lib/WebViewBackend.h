@@ -54,7 +54,8 @@ struct WebViewPdfOptions
 	int repeatTableHeaders = -1;
 };
 
-// Called once per printToPdf request, on the thread that pumps WebViewBackend::processEvents.
+// Called once per printToPdf request, from the platform event loop on the thread that pumps it (never from
+// inside the engine's own handler), so it may dispose the webview or create another.
 typedef void (*WebViewPdfCallback)(void *userData, bool success, const std::string &message);
 
 #if !defined(_WIN32)

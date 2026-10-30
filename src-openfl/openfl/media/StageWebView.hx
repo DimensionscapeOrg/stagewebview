@@ -521,6 +521,18 @@ final class StageWebView extends EventDispatcher
 		}
 
 		__currentWindowHandle = WinUtil.getWindowHandle(__stage.window);
+
+		#if !windows
+		if (__currentWindowHandle == null)
+		{
+			// Linux embeds through X11 (Lime's SDL is X11-only, on XWayland under Wayland); a GTK forced onto
+			// Wayland has no X11 window to embed into.
+			dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false,
+				"StageWebView could not find the native window of this stage" #if linux + "; on Linux it embeds through X11 and cannot when GDK_BACKEND=wayland" #end));
+			return;
+		}
+		#end
+
 		__currentWindowKey = WinUtil.getHandleKey(__currentWindowHandle);
 		__childWindowHandle = WinUtil.createChildWindow(__currentWindowHandle, 0, 0, 0, 0);
 		__webView = new WebView(cast __childWindowHandle, __webViewOptions);

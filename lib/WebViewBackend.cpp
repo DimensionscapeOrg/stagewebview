@@ -676,17 +676,40 @@ int WebViewBackend::printToPdf(const char *path, const WebViewPdfOptions &option
 		settings->put_ShouldPrintHeaderAndFooter(FALSE);
 	}
 
+	struct PdfResult
+	{
+		WebViewPdfCallback callback;
+		void *userData;
+		bool success;
+		std::string message;
+	};
+
 	auto widePath = webview::detail::widen_string(std::string(path));
+	webview_t view = handle;
 	auto result = core7->PrintToPdf(widePath.c_str(), settings,
 		Microsoft::WRL::Callback<ICoreWebView2PrintToPdfCompletedHandler>(
-			[callback, userData](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+			[callback, userData, view](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
 			{
-				if (callback != nullptr)
+				if (callback == nullptr)
 				{
-					bool success = SUCCEEDED(errorCode) && isSuccessful;
-					callback(userData, success, success ? std::string() : "PrintToPdf failed: " + std::to_string(static_cast<long>(errorCode)));
+					return S_OK;
 				}
 
+				bool success = SUCCEEDED(errorCode) && isSuccessful;
+				auto *pdfResult = new PdfResult{callback, userData, success,
+					success ? std::string() : "PrintToPdf failed: " + std::to_string(static_cast<long>(errorCode))};
+
+				// Report from the message loop rather than from inside this WebView2 handler: WebView2 cannot
+				// create a controller while one of its handlers is running, so a callback that opens a new
+				// webview (a preview of the PDF, say) would never return.
+				webview_dispatch(view,
+					[](webview_t, void *arg)
+					{
+						auto *pending = static_cast<PdfResult *>(arg);
+						pending->callback(pending->userData, pending->success, pending->message);
+						delete pending;
+					},
+					pdfResult);
 				return S_OK;
 			})
 			.Get());
