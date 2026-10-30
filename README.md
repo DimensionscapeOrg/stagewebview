@@ -176,7 +176,7 @@ The tests use [utest](https://lib.haxe.org/p/utest/) (`haxelib install utest`). 
 haxe build/tests.hxml
 ```
 
-The native suite builds with hxcpp and drives the real platform webview through hidden instances: page load events, the JavaScript bridge in both directions, and `printToPDF()` writing a two-page file. On Linux it needs a display (`xvfb-run` works).
+The native suite builds with hxcpp and drives the real platform webview through hidden instances. It covers page load events, titles, file navigation and history, init scripts and `evaluateJavaScript()`, the JavaScript bridge in both directions, and `printToPDF()` (page count, paper size, the page left unchanged afterwards, failure reporting, a callback that disposes its webview). On Linux it needs a display (`xvfb-run` works). CI runs it on Windows, Linux and macOS; Android is covered by running the report sample on an emulator.
 
 ```bash
 haxe build/tests-native.hxml
@@ -188,6 +188,7 @@ The unit suite covers:
 - `webview.WebView` state and callback behavior through a fake backend
 - `openfl.media.StageWebView` constructor behavior, viewport validation, and offline state handling
 - `printToPDF()` option defaults and result reporting
+- script delegation
 
 CI (`.github/workflows/ci.yml`) builds every platform and, where the runner can show a webview, runs the PDF samples and checks the result with `.github/scripts/check_report_pdf.py`: two pages, the table header on both.
 

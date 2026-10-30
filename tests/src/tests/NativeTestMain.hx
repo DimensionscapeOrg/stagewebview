@@ -1,5 +1,6 @@
 package tests;
 
+import tests.native.NativeBehaviourTest;
 import tests.native.NativeWebViewTest;
 import utest.UTest;
 
@@ -11,6 +12,6 @@ class NativeTestMain
 {
 	private static function main():Void
 	{
-		UTest.run([new NativeWebViewTest()]);
+		UTest.run([new NativeWebViewTest(), new NativeBehaviourTest()]);
 	}
 }

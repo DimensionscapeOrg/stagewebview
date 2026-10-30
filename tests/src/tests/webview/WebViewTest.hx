@@ -221,6 +221,24 @@ class WebViewTest extends Test
 		});
 	}
 
+	public function testScriptsDelegateToBackend():Void
+	{
+		__withWebView(function (webView:WebView, backend:FakeBackend):Void
+		{
+			webView.addInitScript("window.a = 1;");
+			webView.evaluateJavaScript("window.b = 2;");
+
+			Assert.same(["window.a = 1;"], backend.initScripts);
+			Assert.same(["window.b = 2;"], backend.evaluatedScripts);
+
+			webView.dispose();
+			webView.addInitScript("ignored");
+			webView.evaluateJavaScript("ignored");
+			Assert.equals(1, backend.initScripts.length);
+			Assert.equals(1, backend.evaluatedScripts.length);
+		});
+	}
+
 	public function testTopLevelWindowControlsDelegateToBackend():Void
 	{
 		__withWebView(function (webView:WebView, backend:FakeBackend):Void

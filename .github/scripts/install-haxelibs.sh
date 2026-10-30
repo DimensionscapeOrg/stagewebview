@@ -8,4 +8,6 @@ haxelib install hxcpp 4.3.2 --always --quiet
 haxelib install lime 8.3.2 --always --quiet
 haxelib install openfl 9.5.2 --always --quiet
 haxelib install utest 1.13.2 --always --quiet
+# The checkout itself, as consumers install it. Xcode's build phase finds the native build files this way.
+haxelib dev StageWebView .
 haxelib list
