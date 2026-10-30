@@ -114,9 +114,12 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: krdlab/setup-haxe@v1
-        with:
-          haxe-version: ${{ env.HAXE_VERSION }}
+      # setup-haxe has no arm64 macOS build; Homebrew's Haxe bottle is the same 4.3.7.
+      - name: Install Haxe
+        run: |
+          brew install haxe
+          haxe -version
+          haxelib setup "$HOME/haxelib"
       - name: Install pinned haxelibs
         run: .github/scripts/install-haxelibs.sh
       - run: python3 -m pip install --break-system-packages pypdf==5.1.0
@@ -157,9 +160,12 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: krdlab/setup-haxe@v1
-        with:
-          haxe-version: ${{ env.HAXE_VERSION }}
+      # setup-haxe has no arm64 macOS build; Homebrew's Haxe bottle is the same 4.3.7.
+      - name: Install Haxe
+        run: |
+          brew install haxe
+          haxe -version
+          haxelib setup "$HOME/haxelib"
       - name: Install pinned haxelibs
         run: .github/scripts/install-haxelibs.sh
       - name: Compile for the iOS simulator
@@ -172,9 +178,12 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: krdlab/setup-haxe@v1
-        with:
-          haxe-version: ${{ env.HAXE_VERSION }}
+      # setup-haxe has no arm64 macOS build; Homebrew's Haxe bottle is the same 4.3.7.
+      - name: Install Haxe
+        run: |
+          brew install haxe
+          haxe -version
+          haxelib setup "$HOME/haxelib"
       - name: Install pinned haxelibs
         run: .github/scripts/install-haxelibs.sh
       - name: Build the OpenFL report sample for the simulator
