@@ -18,11 +18,11 @@ Source: `https://github.com/dimensionscapeOrg/stagewebview`
 
 | Platform | Engine | Glue | Status |
 | --- | --- | --- | --- |
-| Windows | WebView2 | vendored `webview.h` + `lib/WebViewBackend.cpp` | built and run |
+| Windows | WebView2 | vendored `webview.h` + `lib/WebViewBackend.cpp` | built and run in CI |
 | Linux | WebKitGTK 4.1 (GTK 3) | vendored `webview.h` + `lib/gtk` | built and run on Ubuntu 24.04, X11 and Wayland (through XWayland) |
-| macOS | WKWebView | `lib/apple` (Objective-C++) | written, not yet compiled: CI builds and runs it |
-| iOS | WKWebView | `lib/apple` (Objective-C++) | written, not yet compiled: CI compiles it, nothing runs it |
-| Android | `android.webkit.WebView` | Haxe over `lime.system.JNI` + `android/src` | built and run on an Android 14 emulator (x86_64) |
+| macOS | WKWebView | `lib/apple` (Objective-C++) | built and run in CI (macOS 14, arm64): native tests and both samples |
+| iOS | WKWebView | `lib/apple` (Objective-C++) | built in CI for the simulator, through hxcpp and as a Lime app; not run |
+| Android | `android.webkit.WebView` | Haxe over `lime.system.JNI` + `android/src` | built and run in CI on an Android 14 emulator (x86_64) |
 
 Windows keeps the code paths it had before the other platforms were added. Every other platform implements the same `WebViewBackend` C++ class through a `PlatformWebView` engine (`lib/WebViewBackendPlatform.cpp`), except Android, which implements the Haxe backend interface directly because the webview lives in Java.
 

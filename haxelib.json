@@ -22,7 +22,7 @@
   "description": "Webview library for Haxe on Windows (WebView2), Linux (WebKitGTK), macOS and iOS (WKWebView) and Android, with a public webview.WebView API, an optional OpenFL StageWebView facade, hidden webviews, PDF output, direct hxcpp bindings, and a HashLink hdll on Windows.",
   "version": "0.7.0",
   "classPath": "src",
-  "releasenote": "Adds Linux, macOS, iOS and Android backends; hidden webviews (startHidden); printToPDF on every platform, with table headers repeated across pages on WebKit; processEvents. Windows behaviour is unchanged.",
+  "releasenote": "Adds Linux, macOS, iOS and Android backends; hidden webviews (startHidden); printToPDF on every platform, with table headers repeated across pages on WebKit; processEvents. Windows behaviour is unchanged. iOS is built in CI but not yet run.",
   "contributors": [
     "Dimensionscape"
   ],
