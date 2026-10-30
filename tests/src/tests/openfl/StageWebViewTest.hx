@@ -2,11 +2,12 @@ package tests.openfl;
 
 import openfl.geom.Rectangle;
 import openfl.media.StageWebView;
-import tests.Assert;
+import tests.TestTools;
+import utest.Assert;
+import utest.Test;
 
-class StageWebViewTest
+class StageWebViewTest extends Test
 {
-	public function new() {}
 
 	public function testCanConstructWithoutAnOpenFLApplication():Void
 	{
@@ -39,7 +40,7 @@ class StageWebViewTest
 		webView.loadString("<h1>Tiny portal, big hello</h1>");
 
 		Assert.equals("about:blank", webView.location);
-		Assert.throws(function ():Void
+		TestTools.throwsContaining(function ():Void
 		{
 			webView.loadString("plain text", "text/plain");
 		}, "text/html");
@@ -56,7 +57,7 @@ class StageWebViewTest
 		webView.viewPort = viewPort;
 
 		Assert.equals("https://openfl.org", webView.location);
-		Assert.same(viewPort, webView.viewPort);
+		Assert.equals(viewPort, webView.viewPort);
 
 		webView.dispose();
 	}
@@ -65,17 +66,17 @@ class StageWebViewTest
 	{
 		var webView = new StageWebView();
 
-		Assert.throws(function ():Void
+		TestTools.throwsContaining(function ():Void
 		{
 			webView.viewPort = null;
 		}, "valid Rectangle");
 
-		Assert.throws(function ():Void
+		TestTools.throwsContaining(function ():Void
 		{
 			webView.viewPort = new Rectangle(0, 0, -1, 100);
 		}, "valid Rectangle");
 
-		Assert.throws(function ():Void
+		TestTools.throwsContaining(function ():Void
 		{
 			webView.viewPort = new Rectangle(0, 0, 100, -1);
 		}, "valid Rectangle");

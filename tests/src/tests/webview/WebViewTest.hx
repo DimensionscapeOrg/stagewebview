@@ -1,15 +1,16 @@
 package tests.webview;
 
-import tests.Assert;
+import tests.TestTools;
+import utest.Assert;
+import utest.Test;
 import webview.NativeHandleKind;
 import webview.WebView;
 import webview.WebViewHandle;
 import webview.WebViewHint;
 
 @:access(webview.WebView)
-class WebViewTest
+class WebViewTest extends Test
 {
-	public function new() {}
 
 	public function testCallbacksRefreshStateAndReachConsumers():Void
 	{
@@ -174,7 +175,7 @@ class WebViewTest
 			Assert.equals("about:blank", webView.location);
 			Assert.equals("", webView.title);
 
-			Assert.throws(function ():Void
+			TestTools.throwsContaining(function ():Void
 			{
 				webView.loadString("<p>Plain text no thank you</p>", "text/plain");
 			}, "text/html");

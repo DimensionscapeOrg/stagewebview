@@ -33,6 +33,11 @@ jobs:
       - run: pip install pypdf==5.1.0
       - name: Unit tests (interp)
         run: haxe build/tests.hxml
+      - name: Native tests (hxcpp, WebView2)
+        shell: bash
+        run: |
+          haxe build/tests-native.hxml -D HXCPP_M64
+          bin/tests/native/NativeTestMain.exe
       - name: Headless PDF sample (hxcpp)
         shell: bash
         run: |
@@ -76,6 +81,10 @@ jobs:
       - run: pip install pypdf==5.1.0
       - name: Unit tests (interp)
         run: haxe build/tests.hxml
+      - name: Native tests (hxcpp, WebKitGTK)
+        run: |
+          haxe build/tests-native.hxml -D HXCPP_M64
+          xvfb-run -a -s "-screen 0 1280x1024x24" bin/tests/native/NativeTestMain
       - name: Headless PDF sample (hxcpp)
         run: |
           haxe samples/pdf/build-cpp.hxml -D HXCPP_M64
@@ -111,6 +120,12 @@ jobs:
       - name: Install pinned haxelibs
         run: .github/scripts/install-haxelibs.sh
       - run: python3 -m pip install --break-system-packages pypdf==5.1.0
+      - name: Unit tests (interp)
+        run: haxe build/tests.hxml
+      - name: Native tests (hxcpp, WKWebView)
+        run: |
+          haxe build/tests-native.hxml -D HXCPP_ARM64
+          bin/tests/native/NativeTestMain
       - name: Headless PDF sample (hxcpp)
         run: |
           haxe samples/pdf/build-cpp.hxml -D HXCPP_ARM64

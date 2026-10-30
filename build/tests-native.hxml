@@ -1,0 +1,7 @@
+-lib utest
+-cp src
+-cp tests/src
+-cp samples/common/src
+--macro stagewebview._internal.ExtraParamsMacro.include()
+-main tests.NativeTestMain
+-cpp bin/tests/native

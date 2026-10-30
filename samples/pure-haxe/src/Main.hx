@@ -251,7 +251,7 @@ class Main
 			+ 'if(message.type==="size"&&sizeChip){sizeChip.textContent=message.payload.label+" • "+message.payload.width+"x"+message.payload.height;}'
 			+ 'if(message.type==="title"&&titleChip){titleChip.textContent=message.payload.text;}'
 			+ 'if(message.type==="log"){log(message.payload.text);}'
-			+ 'if(message.type==="blocked"){log("Blocked route: "+message.payload.url+" — "+message.payload.reason);}'
+			+ 'if(message.type==="blocked"){log("Blocked route: "+message.payload.url+": "+message.payload.reason);}'
 			+ '});'
 			+ 'post("ready",{page:document.body.dataset.page});'
 			+ '</script>';

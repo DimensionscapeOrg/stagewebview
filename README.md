@@ -12,7 +12,7 @@ It exposes two public APIs:
 
 The native backend is vendored in this repository. hxcpp talks to it directly, HashLink uses a shipped `stagewebview.hdll` (Windows), and the OpenFL layer stays optional unless you actually import it.
 
-Source: `https://github.com/DimensionscapeOrg/stagewebview`
+Source: `https://github.com/dimensionscapeOrg/stagewebview`
 
 ## Platforms
 
@@ -170,13 +170,20 @@ Generated sample output goes under `bin`.
 
 ## Tests
 
-The lightweight test suite runs with:
+The tests use [utest](https://lib.haxe.org/p/utest/) (`haxelib install utest`). The unit suite runs on the interpreter with a fake backend:
 
 ```bash
 haxe build/tests.hxml
 ```
 
-That covers:
+The native suite builds with hxcpp and drives the real platform webview through hidden instances: page load events, the JavaScript bridge in both directions, and `printToPDF()` writing a two-page file. On Linux it needs a display (`xvfb-run` works).
+
+```bash
+haxe build/tests-native.hxml
+bin/tests/native/NativeTestMain
+```
+
+The unit suite covers:
 
 - `webview.WebView` state and callback behavior through a fake backend
 - `openfl.media.StageWebView` constructor behavior, viewport validation, and offline state handling
