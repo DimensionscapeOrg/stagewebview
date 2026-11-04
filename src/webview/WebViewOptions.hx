@@ -6,8 +6,8 @@ package webview;
 	Available fields:
 
 	- `debug`: Enables backend debugging features when supported.
-	- `mediaPlaybackRequiresUserAction`: Reserved AIR-style parity flag kept for
-	  constructor compatibility and future backend behavior.
+	- `mediaPlaybackRequiresUserAction`: Makes media wait for a user action before
+	  it plays, on Linux, macOS, iOS and Android.
 	- `userAgent`: Overrides the browser user agent on supported backends.
 	- `enableContextMenu`: Enables or disables the native context menu.
 	- `enableKeyboardShortcuts`: Enables or disables browser keyboard shortcuts.
@@ -39,10 +39,8 @@ class WebViewOptions
 	public var debug:Null<Bool> = null;
 
 	/**
-		Reserved for AIR-style parity and future backend configuration.
-
-		The current Windows backend stores this value for API parity, but does not
-		change runtime behavior based on it yet.
+		Makes media wait for a user action before it plays. Applied on Linux, macOS,
+		iOS and Android. Windows stores the value, but does not apply it yet.
 	**/
 	public var mediaPlaybackRequiresUserAction:Null<Bool> = null;
 

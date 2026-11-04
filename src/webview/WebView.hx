@@ -58,9 +58,11 @@ class WebView
 	public var location(get, never):String;
 
 	/**
-		Reserved for AIR-style parity and future backend configuration.
+		Whether media waits for a user action before it plays. The engine takes this
+		from the constructor's options, so setting it here changes nothing for a
+		webview that already exists.
 
-		The current Windows backend does not change behavior based on this flag yet.
+		Applied on Linux, macOS, iOS and Android. Windows does not apply it yet.
 	**/
 	public var mediaPlaybackRequiresUserAction(get, set):Bool;
 

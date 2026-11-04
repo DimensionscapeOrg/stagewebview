@@ -82,10 +82,10 @@ final class StageWebView extends EventDispatcher
 	public var location(get, never):String;
 
 	/**
-		Whether media playback requires a user action.
+		Whether media playback requires a user action. Set it before `stage`, as the
+		native view takes it when it is created.
 
-		The value is stored for AIR parity. The current Windows backend does not
-		yet enforce autoplay policy changes for this setting.
+		Applied on Linux, macOS, iOS and Android. Windows does not apply it yet.
 	**/
 	public var mediaPlaybackRequiresUserAction(get, set):Bool;
 
