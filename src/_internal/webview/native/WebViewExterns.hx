@@ -40,6 +40,7 @@ extern class WebViewExterns
 		marginBottom:Float, marginLeft:Float, landscape:Int, printBackground:Int, scale:Float, repeatTableHeaders:Int, onComplete:Dynamic):Int;
 	static function webView2ControllerSetBounds(controller:WebViewHandle, width:Int, height:Int):Void;
 	static function processEvents():Int;
+	static function isSupported():Bool;
 }
 #elseif hl
 import hl.Bytes;
@@ -77,6 +78,7 @@ extern class WebViewExterns
 		marginBottom:Float, marginLeft:Float, landscape:Int, printBackground:Int, scale:Float, repeatTableHeaders:Int, onComplete:Dynamic):Int;
 	static function webview2_controller_set_bounds(controller:WebViewHandle, width:Int, height:Int):Void;
 	static function process_events():Int;
+	static function is_supported():Bool;
 
 	public static inline function setSize(w:WebViewHandle, width:Int, height:Int, hints:Int):Int
 		return set_size(w, width, height, hints);
@@ -140,6 +142,9 @@ extern class WebViewExterns
 
 	public static inline function processEvents():Int
 		return process_events();
+
+	public static inline function isSupported():Bool
+		return is_supported();
 
 	private static inline function __bytesToString(value:Bytes):String
 	{
@@ -226,5 +231,8 @@ class WebViewExterns
 
 	public static inline function processEvents():Int
 		return 0;
+
+	public static inline function isSupported():Bool
+		return false;
 }
 #end

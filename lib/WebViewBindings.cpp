@@ -452,4 +452,9 @@ int HxcppWebViewBindings::processEvents()
 	return WebViewBackend::processEvents();
 }
 
+bool HxcppWebViewBindings::isSupported()
+{
+	return WebViewBackend::isSupported();
+}
+
 } // namespace stagewebview

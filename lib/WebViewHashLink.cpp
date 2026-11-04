@@ -497,6 +497,11 @@ HL_PRIM int HL_NAME(hl_webview_process_events)()
 	return stagewebview::WebViewBackend::processEvents();
 }
 
+HL_PRIM bool HL_NAME(hl_webview_is_supported)()
+{
+	return stagewebview::WebViewBackend::isSupported();
+}
+
 HL_PRIM void HL_NAME(hl_webview_webview2_controller_set_bounds)(HL_CFFIPointer *controller, int width, int height)
 {
 	stagewebview::WebViewBackend::webView2ControllerSetBounds(controller != nullptr ? controller->ptr : nullptr, width, height);
@@ -527,4 +532,5 @@ DEFINE_HL_PRIM(_BYTES, hl_webview_get_title, _TCFFIPOINTER);
 DEFINE_HL_PRIM(_TCFFIPOINTER, hl_webview_get_native_handle, _TCFFIPOINTER _I32);
 DEFINE_HL_PRIM(_I32, hl_webview_print_to_pdf, _TCFFIPOINTER _STRING _F64 _F64 _F64 _F64 _F64 _F64 _I32 _I32 _F64 _I32 _DYN);
 DEFINE_HL_PRIM(_I32, hl_webview_process_events, _NO_ARG);
+DEFINE_HL_PRIM(_BOOL, hl_webview_is_supported, _NO_ARG);
 DEFINE_HL_PRIM(_VOID, hl_webview_webview2_controller_set_bounds, _TCFFIPOINTER _I32 _I32);

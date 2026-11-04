@@ -380,6 +380,11 @@ void WebViewBackend::webView2ControllerSetBounds(void *controllerHandle, int wid
 	(void)height;
 }
 
+bool WebViewBackend::isSupported()
+{
+	return true;
+}
+
 int WebViewBackend::processEvents()
 {
 	return PlatformWebView::processEvents();

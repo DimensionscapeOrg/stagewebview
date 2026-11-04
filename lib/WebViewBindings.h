@@ -40,6 +40,7 @@ public:
 		double marginLeft, int landscape, int printBackground, double scale, int repeatTableHeaders, Dynamic onComplete);
 	static void webView2ControllerSetBounds(void *controller, int width, int height);
 	static int processEvents();
+	static bool isSupported();
 };
 
 } // namespace stagewebview

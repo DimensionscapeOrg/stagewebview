@@ -93,6 +93,7 @@ public:
 
 	static void webView2ControllerSetBounds(void *controllerHandle, int width, int height);
 	static int processEvents();
+	static bool isSupported();
 
 private:
 	WebViewBackend() = default;

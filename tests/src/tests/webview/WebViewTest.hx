@@ -12,6 +12,12 @@ import webview.WebViewHint;
 class WebViewTest extends Test
 {
 
+	public function testIsNotSupportedWithoutABackend():Void
+	{
+		// The interpreter has no backend, whatever machine it runs on
+		Assert.isFalse(WebView.isSupported);
+	}
+
 	public function testCallbacksRefreshStateAndReachConsumers():Void
 	{
 		__withWebView(function (webView:WebView, backend:FakeBackend):Void

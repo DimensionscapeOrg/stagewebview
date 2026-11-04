@@ -29,7 +29,7 @@ class ExtraParamsMacro
 			__definedRoot = true;
 		}
 
-		if (!__definedWindowsTarget && Sys.systemName() == "Windows")
+		if (!__definedWindowsTarget && __isWindowsTarget())
 		{
 			Compiler.define("stagewebview_windows");
 			__definedWindowsTarget = true;
@@ -72,10 +72,21 @@ class ExtraParamsMacro
 	{
 		if (Context.defined("cpp"))
 		{
+			if (Context.defined("emscripten") || Context.defined("tvos"))
+			{
+				return false;
+			}
+
 			return Context.defined("android") || Context.defined("ios") || ["Windows", "Linux", "Mac"].indexOf(Sys.systemName()) >= 0;
 		}
 
 		return Context.defined("hl") && Sys.systemName() == "Windows";
+	}
+
+	// Plain hxcpp defines no platform: it builds for the machine it runs on, unless told to build for a device.
+	private static function __isWindowsTarget():Bool
+	{
+		return __isSupportedTarget() && !Context.defined("android") && !Context.defined("ios") && Sys.systemName() == "Windows";
 	}
 
 	private static function __isLinuxDesktopTarget():Bool

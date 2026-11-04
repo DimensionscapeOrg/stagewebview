@@ -790,11 +790,7 @@ final class StageWebView extends EventDispatcher
 
 	private static inline function get_isSupported():Bool
 	{
-		#if (windows || stagewebview_windows || stagewebview_supported)
-		return true;
-		#else
-		return false;
-		#end
+		return WebView.isSupported;
 	}
 
 	private inline function get_isHistoryBackEnabled():Bool

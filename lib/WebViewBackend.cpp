@@ -723,6 +723,16 @@ int WebViewBackend::printToPdf(const char *path, const WebViewPdfOptions &option
 	return SUCCEEDED(result) ? 0 : -3;
 }
 
+bool WebViewBackend::isSupported()
+{
+	// The runtime comes with Windows 11 but not with every Windows 10, and a webview cannot start without it.
+	webview::detail::mswebview2::loader loader;
+	LPWSTR version = nullptr;
+	bool supported = loader.get_available_browser_version_string(nullptr, &version) == S_OK && version != nullptr;
+	CoTaskMemFree(version);
+	return supported;
+}
+
 int WebViewBackend::processEvents()
 {
 	int processed = 0;

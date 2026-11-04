@@ -39,13 +39,11 @@ import _internal.webview.WebViewBackend;
 **/
 class WebView
 {
-	/** Whether the current target platform can create a runtime webview. */
-	public static inline final isSupported:Bool =
-	#if (windows || stagewebview_windows || stagewebview_supported)
-	true
-	#else
-	false
-	#end;
+	/**
+		Whether a webview can be created here: `false` on targets without a backend,
+		and on Windows when the WebView2 Runtime is not installed.
+	**/
+	public static var isSupported(get, never):Bool;
 
 	/** The native backend handle for this webview instance. */
 	public var handle(get, never):WebViewHandle;
@@ -699,6 +697,17 @@ class WebView
 	private inline function get_isHistoryForwardEnabled():Bool
 	{
 		return canGoForward();
+	}
+
+	private static function get_isSupported():Bool
+	{
+		#if (stagewebview_supported && android)
+		return true;
+		#elseif stagewebview_supported
+		return _internal.webview.native.WebViewExterns.isSupported();
+		#else
+		return false;
+		#end
 	}
 
 	private inline function get_location():String
