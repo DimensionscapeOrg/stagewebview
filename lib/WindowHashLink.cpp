@@ -3,6 +3,8 @@
 
 #define HL_NAME(n) stagewebview_##n
 #include <hl.h>
+// Avoid conflicts with the Windows headers' use of _GUID, which HashLink 1.16 defines
+#undef _GUID
 #undef DEFINE_PRIM
 #define DEFINE_HL_PRIM(t, name, args) DEFINE_PRIM_WITH_NAME(t, name, args, name)
 
