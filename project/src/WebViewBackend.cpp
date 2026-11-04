@@ -955,7 +955,13 @@ void WebViewBackend::registerEvents()
 
 					COREWEBVIEW2_WEB_ERROR_STATUS status = COREWEBVIEW2_WEB_ERROR_STATUS_UNKNOWN;
 					args->get_WebErrorStatus(&status);
-					notifyError("Navigation failed: " + std::to_string(static_cast<int>(status)));
+
+					// The host stopped it, which is not a failure
+					if (status != COREWEBVIEW2_WEB_ERROR_STATUS_OPERATION_CANCELED)
+					{
+						notifyError("Navigation failed: " + std::to_string(static_cast<int>(status)));
+					}
+
 					return S_OK;
 				})
 				.Get(),

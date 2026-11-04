@@ -412,6 +412,14 @@ private:
 	{
 		auto *self = static_cast<GtkPlatformWebView *>(data);
 		self->loadFailed = true;
+
+		// The host stopped it, which is not a failure
+		if (g_error_matches(error, WEBKIT_NETWORK_ERROR, WEBKIT_NETWORK_ERROR_CANCELLED)
+			|| g_error_matches(error, WEBKIT_POLICY_ERROR, WEBKIT_POLICY_ERROR_FRAME_LOAD_INTERRUPTED_BY_POLICY_CHANGE))
+		{
+			return FALSE;
+		}
+
 		self->notifyError(std::string("Navigation failed: ") + (error != nullptr && error->message != nullptr ? error->message : "unknown error"));
 		return FALSE;
 	}

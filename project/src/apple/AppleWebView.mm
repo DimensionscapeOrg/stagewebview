@@ -455,6 +455,13 @@ public:
 
 	void handleError(NSError *error)
 	{
+		// The host stopped it, which is not a failure
+		if ((error.code == NSURLErrorCancelled && [error.domain isEqualToString:NSURLErrorDomain])
+			|| (error.code == 102 && [error.domain isEqualToString:@"WebKitErrorDomain"]))
+		{
+			return;
+		}
+
 		notifyError(std::string("Navigation failed: ") + (error.localizedDescription != nil ? error.localizedDescription.UTF8String : "unknown error"));
 	}
 

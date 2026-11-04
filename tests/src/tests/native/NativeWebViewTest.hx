@@ -47,6 +47,33 @@ class NativeWebViewTest extends Test
 		Assert.isTrue(__pumpUntil(function():Bool return __webView.title == "Native test"), "title is \"" + __webView.title + "\"");
 	}
 
+	public function testCancellingANavigationIsNotAnError():Void
+	{
+		var completed = false;
+		__webView.onComplete = function():Void completed = true;
+		__webView.loadString("<!doctype html><html><body>hello</body></html>");
+		Assert.isTrue(__pumpUntil(function():Bool return completed), "onComplete did not fire");
+
+		var asked = 0;
+		var errors:Array<String> = [];
+		__webView.onError = errors.push;
+		__webView.onLocationChanging = function(location:String):Bool
+		{
+			asked++;
+			return true;
+		};
+		__webView.navigate("https://example.invalid/never");
+
+		Assert.isTrue(__pumpUntil(function():Bool return asked > 0), "onLocationChanging did not fire");
+		var end = Sys.time() + 0.5;
+		while (Sys.time() < end)
+		{
+			WebView.processEvents();
+			Sys.sleep(0.01);
+		}
+		Assert.equals(0, errors.length, Std.string(errors));
+	}
+
 	public function testBridgeCarriesMessagesBothWays():Void
 	{
 		var messages:Array<String> = [];
