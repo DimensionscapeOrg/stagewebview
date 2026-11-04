@@ -12,6 +12,7 @@ class HxcppWindowBindings
 {
 public:
 	static void *getWindowHandle(String name);
+	static void *fromAddress(int high, int low);
 	static void *createChildWindow(void *windowHandle, int x, int y, int width, int height);
 	static void showWindow(void *handle);
 	static void hideWindow(void *handle);

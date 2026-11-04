@@ -93,6 +93,11 @@ void *windowGetHandle(const char *name)
 	#endif
 }
 
+void *windowFromAddress(int high, int low)
+{
+	return windowAddress(high, low);
+}
+
 void *windowCreateChildWindow(void *parentHandle, int x, int y, int width, int height)
 {
 	id parent = (__bridge id)parentHandle;

@@ -142,7 +142,7 @@ The callback runs from the event loop, never inside the engine's own handler, so
 
 ## Embedding
 
-The OpenFL facade places a native child over the stage at `viewPort`:
+The OpenFL facade places a native child over the stage at `viewPort`. It gets the stage's window from Lime's `Window.nativeHandle`; with a Lime from before 8.4.0, which does not have it, it finds the window by giving it a title nothing else has for a moment.
 
 - Windows: a child `HWND`.
 - Linux: a GTK popup window reparented into SDL's X11 window. Lime 8.3.2's SDL has no Wayland driver, so in a Wayland session the app runs on XWayland and the library asks GDK for X11 as well; embedding then works the same way. If GTK is forced onto Wayland (`GDK_BACKEND=wayland`) there is no X11 window to embed into: hidden webviews and PDF output still work, and the facade dispatches an `ErrorEvent` instead of showing the view.

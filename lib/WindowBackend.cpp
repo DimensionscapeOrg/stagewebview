@@ -25,6 +25,11 @@ void *windowGetHandle(const char *name)
 	return FindWindowA(nullptr, name);
 }
 
+void *windowFromAddress(int high, int low)
+{
+	return windowAddress(high, low);
+}
+
 void *windowCreateChildWindow(void *parentHandle, int x, int y, int width, int height)
 {
 	auto parent = reinterpret_cast<HWND>(parentHandle);

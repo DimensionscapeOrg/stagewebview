@@ -55,6 +55,11 @@ HL_PRIM void HL_NAME(hl_window_hide_window)(HL_CFFIPointer *handle)
 	stagewebview::windowHide(handle != nullptr ? handle->ptr : nullptr);
 }
 
+HL_PRIM HL_CFFIPointer *HL_NAME(hl_window_from_address)(int high, int low)
+{
+	return allocPointer(stagewebview::windowFromAddress(high, low));
+}
+
 HL_PRIM void HL_NAME(hl_window_destroy_window)(HL_CFFIPointer *handle)
 {
 	stagewebview::windowDestroy(handle != nullptr ? handle->ptr : nullptr);
@@ -77,6 +82,7 @@ HL_PRIM vstring *HL_NAME(hl_window_get_handle_key)(HL_CFFIPointer *handle)
 }
 
 DEFINE_HL_PRIM(_TCFFIPOINTER, hl_window_get_window_handle, _STRING);
+DEFINE_HL_PRIM(_TCFFIPOINTER, hl_window_from_address, _I32 _I32);
 DEFINE_HL_PRIM(_TCFFIPOINTER, hl_window_create_child_window, _TCFFIPOINTER _I32 _I32 _I32 _I32);
 DEFINE_HL_PRIM(_VOID, hl_window_show_window, _TCFFIPOINTER);
 DEFINE_HL_PRIM(_VOID, hl_window_hide_window, _TCFFIPOINTER);

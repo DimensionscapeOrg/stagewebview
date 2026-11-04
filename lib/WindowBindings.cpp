@@ -10,6 +10,11 @@ void *HxcppWindowBindings::getWindowHandle(String name)
 	return windowGetHandle(name.c_str());
 }
 
+void *HxcppWindowBindings::fromAddress(int high, int low)
+{
+	return windowFromAddress(high, low);
+}
+
 void *HxcppWindowBindings::createChildWindow(void *windowHandle, int x, int y, int width, int height)
 {
 	return windowCreateChildWindow(windowHandle, x, y, width, height);

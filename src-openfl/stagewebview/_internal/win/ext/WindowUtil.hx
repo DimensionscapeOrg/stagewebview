@@ -8,13 +8,24 @@ class WindowUtil
 {
 	@:noCompletion private static inline final __handleTitle:String = "__0x0323526241231234123123-hwnd__";
 
-	@:noCompletion private static inline function _getWindowHandle(window:Window):WebViewHandle
+	@:noCompletion private static function _getWindowHandle(window:Window):WebViewHandle
 	{
+		#if (stagewebview_native_handle && !android)
+		var handle = window.nativeHandle;
+		if (handle == null #if linux || handle.type != lime.ui.WindowHandleType.X11 #end)
+		{
+			return null;
+		}
+
+		return WindowBindings.fromAddress(handle.window.high, handle.window.low);
+		#else
+		// Lime has no way to give the window out before 8.4.0, so it is found by a title nothing else has.
 		var tempTitle = window.title;
 		window.title = __handleTitle;
 		var handle = WindowBindings.getWindowHandle(__handleTitle);
 		window.title = tempTitle;
 		return handle;
+		#end
 	}
 
 	@:noCompletion private static inline function _createChildWindow(parentHandle:WebViewHandle, x:Int, y:Int, width:Int, height:Int):WebViewHandle
@@ -132,6 +143,7 @@ private class WindowBindings
 private extern class WindowBindings
 {
 	static function getWindowHandle(name:String):WebViewHandle;
+	static function fromAddress(high:Int, low:Int):WebViewHandle;
 	static function createChildWindow(windowHandle:WebViewHandle, x:Int, y:Int, width:Int, height:Int):WebViewHandle;
 	static function showWindow(handle:WebViewHandle):Void;
 	static function hideWindow(handle:WebViewHandle):Void;
@@ -145,6 +157,7 @@ private extern class WindowBindings
 private extern class WindowBindings
 {
 	static function get_window_handle(name:String):WebViewHandle;
+	static function from_address(high:Int, low:Int):WebViewHandle;
 	static function create_child_window(windowHandle:WebViewHandle, x:Int, y:Int, width:Int, height:Int):WebViewHandle;
 	static function show_window(handle:WebViewHandle):Void;
 	static function hide_window(handle:WebViewHandle):Void;
@@ -155,6 +168,9 @@ private extern class WindowBindings
 
 	public static inline function getWindowHandle(name:String):WebViewHandle
 		return get_window_handle(name);
+
+	public static inline function fromAddress(high:Int, low:Int):WebViewHandle
+		return from_address(high, low);
 
 	public static inline function createChildWindow(windowHandle:WebViewHandle, x:Int, y:Int, width:Int, height:Int):WebViewHandle
 		return create_child_window(windowHandle, x, y, width, height);
@@ -193,6 +209,9 @@ private extern class WindowBindings
 private class WindowBindings
 {
 	public static inline function getWindowHandle(name:String):WebViewHandle
+		return null;
+
+	public static inline function fromAddress(high:Int, low:Int):WebViewHandle
 		return null;
 
 	public static inline function createChildWindow(windowHandle:WebViewHandle, x:Int, y:Int, width:Int, height:Int):WebViewHandle

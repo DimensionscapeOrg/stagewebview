@@ -40,6 +40,11 @@ class ExtraParamsMacro
 			Compiler.define("stagewebview_supported");
 		}
 
+		if (Context.defined("openfl") && __hasLimeNativeHandle())
+		{
+			Compiler.define("stagewebview_native_handle");
+		}
+
 		if (!Context.defined("display") && Context.defined("cpp") && __isLinuxDesktopTarget())
 		{
 			__configureGtk();
@@ -87,6 +92,20 @@ class ExtraParamsMacro
 	private static function __isWindowsTarget():Bool
 	{
 		return __isSupportedTarget() && !Context.defined("android") && !Context.defined("ios") && Sys.systemName() == "Windows";
+	}
+
+	// By the class rather than the version: a Lime from git can call itself 8.4.0 from before Window.nativeHandle.
+	private static function __hasLimeNativeHandle():Bool
+	{
+		try
+		{
+			Context.resolvePath("lime/ui/WindowHandle.hx");
+			return true;
+		}
+		catch (error:Dynamic)
+		{
+			return false;
+		}
 	}
 
 	private static function __isLinuxDesktopTarget():Bool

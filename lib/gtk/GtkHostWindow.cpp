@@ -177,6 +177,22 @@ void *windowGetHandle(const char *name)
 	return nullptr;
 }
 
+void *windowFromAddress(int high, int low)
+{
+	#ifdef GDK_WINDOWING_X11
+	// A GTK forced onto Wayland has no X11 connection to embed through.
+	if (gtk::ensureInitialized() && x11Display() != nullptr)
+	{
+		return windowAddress(high, low);
+	}
+	#else
+	(void)high;
+	(void)low;
+	#endif
+
+	return nullptr;
+}
+
 void *windowCreateChildWindow(void *parentHandle, int x, int y, int width, int height)
 {
 	if (parentHandle == nullptr || !gtk::ensureInitialized())
