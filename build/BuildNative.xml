@@ -89,10 +89,6 @@
 	</section>
 
 	<target id="haxe">
-		<section if="windows" unless="HXCPP_M32">
-			<lib name="${this_dir}/../lib/windows/x64/WebView2Loader.dll.lib" />
-		</section>
-
 		<section if="linux" unless="android || windows">
 			<files id="stagewebview-native" />
 		</section>

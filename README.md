@@ -26,6 +26,8 @@ Source: `https://github.com/dimensionscapeOrg/stagewebview`
 
 Windows keeps the code paths it had before the other platforms were added. Every other platform implements the same `WebViewBackend` C++ class through a `PlatformWebView` engine (`lib/WebViewBackendPlatform.cpp`), except Android, which implements the Haxe backend interface directly because the webview lives in Java.
 
+Windows needs nothing shipped beside the application: `webview.h` finds the installed WebView2 Runtime through the registry. Windows 11 includes the runtime, and most Windows 10 machines have it with Edge. Where it is missing, `WebView.isSupported` is `false`.
+
 Linux needs the GTK and WebKitGTK development files to build (`sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev`); the build reads their flags from `pkg-config`. At run time it needs a display: an X server, Xvfb, or a Wayland session with XWayland.
 
 Linux and Android deliver page events, messages and PDF results only when the host calls `WebView.processEvents()`. The OpenFL facade does that every frame; plain Haxe hosts call it from their own loop. On Windows, macOS and iOS the host's event loop already does the same work.

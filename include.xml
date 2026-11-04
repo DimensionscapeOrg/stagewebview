@@ -4,8 +4,6 @@
 	<haxeflag name="--macro" value="stagewebview._internal.ExtraParamsMacro.include()" />
 
 	<assets path="ndll/Windows64/stagewebview.hdll" rename="stagewebview.hdll" unless="HXCPP_M32" if="hl windows" />
-	<assets path="lib/windows/x64" rename="" exclude="WebView2Loader.dll.lib" unless="HXCPP_M32" if="windows" />
-	<assets path="lib/windows/EBWebView/x64" rename="EBWebView/x64" unless="HXCPP_M32" if="windows" />
 
 	<!-- Android: the Java host and the PrintDocumentAdapter helper. -->
 	<java path="android/src" if="android" />
