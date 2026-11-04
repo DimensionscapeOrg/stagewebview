@@ -1,6 +1,6 @@
 // Linux engine: the vendored webview.h GTK backend (GTK 3 + WebKitGTK 4.1) plus the WebKitGTK signals
 // StageWebView needs for navigation events, messaging, snapshots and printing.
-#include "../vendor/webview.h"
+#include <stagewebview/vendor/webview.h>
 
 #include <libintl.h>
 

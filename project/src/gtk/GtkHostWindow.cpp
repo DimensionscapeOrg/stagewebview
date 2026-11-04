@@ -19,7 +19,7 @@
 #include <string>
 #include <unordered_set>
 
-#include "../WindowBackend.h"
+#include <stagewebview/WindowBackend.h>
 #include "GtkSupport.h"
 
 namespace stagewebview {

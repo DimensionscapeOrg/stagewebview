@@ -17,7 +17,7 @@ typedef NSView PlatformView;
 #include <cstdio>
 #include <string>
 
-#include "../WindowBackend.h"
+#include <stagewebview/WindowBackend.h>
 
 namespace stagewebview {
 

@@ -1,12 +1,11 @@
 // Windows (WebView2) implementation. Other platforms implement WebViewBackend in WebViewBackendPlatform.cpp.
-#include <hxcpp.h>
 #include <limits.h>
 #ifndef INT_MAX
 #define INT_MAX 2147483647
 #endif
 #include <objidl.h>
 
-#include "WebViewBackend.h"
+#include <stagewebview/WebViewBackend.h>
 
 namespace {
 

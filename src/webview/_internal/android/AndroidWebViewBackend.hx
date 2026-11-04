@@ -20,7 +20,7 @@ import webview.WebViewOptions;
 @:noCompletion
 class AndroidWebViewBackend implements IWebViewBackend
 {
-	// Same shim as PlatformWebView::bridgeScript in lib/WebViewBackendPlatform.cpp, posting through the
+	// Same shim as PlatformWebView::bridgeScript in project/src/WebViewBackendPlatform.cpp, posting through the
 	// JavascriptInterface the Java host registers as __stagewebview.
 	private static inline final BRIDGE_SCRIPT:String = "(function () {
 	if (window.chrome && window.chrome.webview) { return; }

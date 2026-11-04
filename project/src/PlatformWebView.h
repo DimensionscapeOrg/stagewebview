@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "WebViewBackend.h"
+#include <stagewebview/WebViewBackend.h>
 
 namespace stagewebview {
 

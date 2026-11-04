@@ -1,6 +1,6 @@
 #include <climits>
 #include <hxcpp.h>
-#include "WindowBackend.h"
+#include <stagewebview/WindowBackend.h>
 #include "WindowBindings.h"
 
 namespace stagewebview {

@@ -4,6 +4,7 @@ package stagewebview._internal;
 import haxe.io.Path;
 import haxe.macro.Compiler;
 import haxe.macro.Context;
+import haxe.macro.Expr.Field;
 import sys.FileSystem;
 import sys.io.File;
 
@@ -18,9 +19,7 @@ class ExtraParamsMacro
 
 	public static function include():Void
 	{
-		var macroPath = Path.normalize(Context.resolvePath("stagewebview/_internal/ExtraParamsMacro.hx"));
-		var srcDirectory = Path.directory(Path.directory(Path.directory(macroPath)));
-		var libraryRoot = Path.directory(srcDirectory);
+		var libraryRoot = __libraryRoot();
 		var currentWorkingDirectory = Path.normalize(StringTools.replace(Sys.getCwd(), "\\", "/"));
 
 		if (!__definedRoot && FileSystem.exists(Path.join([currentWorkingDirectory, "include.xml"])))
@@ -45,19 +44,6 @@ class ExtraParamsMacro
 			Compiler.define("stagewebview_native_handle");
 		}
 
-		if (!Context.defined("display") && Context.defined("cpp") && __isLinuxDesktopTarget())
-		{
-			__configureGtk();
-		}
-
-		if (!Context.defined("display"))
-		{
-			if (Context.defined("hl"))
-			{
-				__prepareHashLinkOutput(libraryRoot);
-			}
-		}
-
 		if (__included || !Context.defined("openfl"))
 		{
 			return;
@@ -70,6 +56,33 @@ class ExtraParamsMacro
 			Compiler.addClassPath(openflSourcePath);
 			__included = true;
 		}
+	}
+
+	// What a program using the native backend needs, set up as its class is built, so that a framework that only
+	// depends on this library for its native code, as Lime does, pays nothing for it.
+	public static function configureBackend():Array<Field>
+	{
+		if (!Context.defined("display"))
+		{
+			if (Context.defined("cpp") && __isLinuxDesktopTarget())
+			{
+				__configureGtk();
+			}
+
+			if (Context.defined("hl"))
+			{
+				__prepareHashLinkOutput(__libraryRoot());
+			}
+		}
+
+		return null;
+	}
+
+	private static function __libraryRoot():String
+	{
+		var macroPath = Path.normalize(Context.resolvePath("stagewebview/_internal/ExtraParamsMacro.hx"));
+		var srcDirectory = Path.directory(Path.directory(Path.directory(macroPath)));
+		return Path.directory(srcDirectory);
 	}
 
 	// Native targets with a backend: hxcpp on Windows, Linux, macOS, iOS and Android, and HashLink on Windows.
@@ -140,7 +153,7 @@ class ExtraParamsMacro
 		}
 
 		var xml = new StringBuf();
-		xml.add("<files id='stagewebview-native'>");
+		xml.add("<files id='stagewebview'>");
 		for (flag in cflags)
 		{
 			xml.add("<compilerflag value='" + __escapeXml(flag) + "'/>");
@@ -152,9 +165,8 @@ class ExtraParamsMacro
 		}
 		xml.add("</target>");
 
-		var meta = "@:buildXml(\"" + xml.toString() + "\")";
 		// hxcpp honours one @:buildXml per class and WebViewExterns already has one, so attach to the backend class.
-		Compiler.addMetadata(meta, "webview._internal.WebViewBackend");
+		Context.getLocalClass().get().meta.add(":buildXml", [macro $v{xml.toString()}], Context.currentPos());
 	}
 
 	private static function __pkgConfig(arguments:Array<String>):Array<String>
@@ -215,7 +227,7 @@ class ExtraParamsMacro
 		var hdllSource = Path.join([packageDirectory, "stagewebview.hdll"]);
 		if (!FileSystem.exists(hdllSource))
 		{
-			var buildFile = Path.join([libraryRoot, "build", "BuildHashlink.xml"]);
+			var buildFile = Path.join([libraryRoot, "project", "BuildHashlink.xml"]);
 			Context.fatalError("Missing HashLink prebuilt: " + Path.join([packageDirectory, "stagewebview.hdll"])
 				+ ". Build it with: haxelib run hxcpp " + buildFile
 				+ " -DHXCPP_M64 -DOUTPUT_DIR=" + packageDirectory

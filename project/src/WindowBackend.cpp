@@ -1,8 +1,7 @@
 #include <climits>
 #include <cstdio>
-#include <hxcpp.h>
 
-#include "WindowBackend.h"
+#include <stagewebview/WindowBackend.h>
 
 namespace stagewebview {
 

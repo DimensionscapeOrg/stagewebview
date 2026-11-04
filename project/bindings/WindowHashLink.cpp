@@ -8,7 +8,7 @@
 #undef DEFINE_PRIM
 #define DEFINE_HL_PRIM(t, name, args) DEFINE_PRIM_WITH_NAME(t, name, args, name)
 
-#include "WindowBackend.h"
+#include <stagewebview/WindowBackend.h>
 
 namespace {
 

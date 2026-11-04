@@ -1,0 +1,32 @@
+<xml>
+
+	<pragma once="true" />
+
+	<!-- The engines, which know nothing of Haxe. A host builds these into its own binary and drives them through
+	     include/stagewebview; Build.xml and BuildHashlink.xml add the bindings for hxcpp and HashLink. -->
+	<files id="stagewebview" tags="haxe,static">
+		<compilerflag value="-I${this_dir}/include" />
+		<compilerflag value="-I${this_dir}/include/stagewebview/windows" if="windows" />
+		<file name="${this_dir}/src/WebViewBackend.cpp" if="windows" />
+		<file name="${this_dir}/src/WindowBackend.cpp" if="windows" />
+		<file name="${this_dir}/src/WebViewBackendPlatform.cpp" unless="windows" />
+		<file name="${this_dir}/src/gtk/GtkWebView.cpp" if="linux" unless="android || windows" />
+		<file name="${this_dir}/src/gtk/GtkHostWindow.cpp" if="linux" unless="android || windows" />
+		<depend name="${this_dir}/include/stagewebview/WebViewBackend.h" />
+		<depend name="${this_dir}/include/stagewebview/WindowBackend.h" />
+		<depend name="${this_dir}/src/PlatformWebView.h" unless="windows" />
+	</files>
+
+	<!-- macOS and iOS: one WKWebView engine in Objective-C++ (ARC) for both. -->
+	<files id="stagewebview-apple" tags="haxe,static">
+		<compilerflag value="-I${this_dir}/include" />
+		<compilerflag value="-fobjc-arc" />
+		<compilerflag value="-std=c++11" />
+		<file name="${this_dir}/src/apple/AppleWebView.mm" />
+		<file name="${this_dir}/src/apple/AppleHostWindow.mm" />
+		<depend name="${this_dir}/include/stagewebview/WebViewBackend.h" />
+		<depend name="${this_dir}/include/stagewebview/WindowBackend.h" />
+		<depend name="${this_dir}/src/PlatformWebView.h" />
+	</files>
+
+</xml>

@@ -2,7 +2,7 @@
 .vscode/
 bin/
 obj/
-build/obj/
+project/obj/
 docs/
 build/hl-click.out.txt
 build/hl-click.err.txt

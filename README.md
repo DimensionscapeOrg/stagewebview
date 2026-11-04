@@ -18,13 +18,13 @@ Source: `https://github.com/dimensionscapeOrg/stagewebview`
 
 | Platform | Engine | Glue | Status |
 | --- | --- | --- | --- |
-| Windows | WebView2 | vendored `webview.h` + `lib/WebViewBackend.cpp` | built and run in CI |
-| Linux | WebKitGTK 4.1 (GTK 3) | vendored `webview.h` + `lib/gtk` | built and run on Ubuntu 24.04, X11 and Wayland (through XWayland) |
-| macOS | WKWebView | `lib/apple` (Objective-C++) | built and run in CI (macOS 14, arm64): native tests and both samples |
-| iOS | WKWebView | `lib/apple` (Objective-C++) | built in CI for the simulator, through hxcpp and as a Lime app; not run |
+| Windows | WebView2 | vendored `webview.h` + `project/src/WebViewBackend.cpp` | built and run in CI |
+| Linux | WebKitGTK 4.1 (GTK 3) | vendored `webview.h` + `project/src/gtk` | built and run on Ubuntu 24.04, X11 and Wayland (through XWayland) |
+| macOS | WKWebView | `project/src/apple` (Objective-C++) | built and run in CI (macOS 14, arm64): native tests and both samples |
+| iOS | WKWebView | `project/src/apple` (Objective-C++) | built in CI for the simulator, through hxcpp and as a Lime app; not run |
 | Android | `android.webkit.WebView` | Haxe over `lime.system.JNI` + `android/src` | built and run in CI on an Android 14 emulator (x86_64) |
 
-Windows keeps the code paths it had before the other platforms were added. Every other platform implements the same `WebViewBackend` C++ class through a `PlatformWebView` engine (`lib/WebViewBackendPlatform.cpp`), except Android, which implements the Haxe backend interface directly because the webview lives in Java.
+Windows keeps the code paths it had before the other platforms were added. Every other platform implements the same `WebViewBackend` C++ class through a `PlatformWebView` engine (`project/src/WebViewBackendPlatform.cpp`), except Android, which implements the Haxe backend interface directly because the webview lives in Java.
 
 Windows needs nothing shipped beside the application: `webview.h` finds the installed WebView2 Runtime through the registry. Windows 11 includes the runtime, and most Windows 10 machines have it with Edge. Where it is missing, `WebView.isSupported` is `false`.
 
@@ -148,6 +148,16 @@ The OpenFL facade places a native child over the stage at `viewPort`. It gets th
 - Linux: a GTK popup window reparented into SDL's X11 window. Lime 8.3.2's SDL has no Wayland driver, so in a Wayland session the app runs on XWayland and the library asks GDK for X11 as well; embedding then works the same way. If GTK is forced onto Wayland (`GDK_BACKEND=wayland`) there is no X11 window to embed into: hidden webviews and PDF output still work, and the facade dispatches an `ErrorEvent` instead of showing the view.
 - macOS and iOS: a container view added over SDL's view, sized in points.
 - Android: a `FrameLayout` added over SDL's surface.
+
+## Building it into a framework
+
+The engines know nothing of Haxe, so a framework can build them into its own binary, as Lime does with native-desktop. `project/Files.xml` defines the file groups, `stagewebview` and, for macOS and iOS, `stagewebview-apple`. `project/include/stagewebview` is the C++ API: `WebViewBackend` for the webview and `WindowBackend.h` for a child window to host it. Android's engine is Java, in `android/src`.
+
+```xml
+<include name="${haxelib:StageWebView}/project/Files.xml" />
+```
+
+Depending on this haxelib costs a program nothing unless it uses `webview.WebView`: the GTK flags and the HashLink runtime are only set up as that class's backend is built.
 
 ## Classpath behavior
 

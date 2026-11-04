@@ -8,6 +8,7 @@ import webview.WebViewHandle;
 import webview.WebViewHint;
 import webview.WebViewOptions;
 
+@:build(stagewebview._internal.ExtraParamsMacro.configureBackend())
 class WebViewBackend implements IWebViewBackend
 {
 	public var handle(get, never):WebViewHandle;

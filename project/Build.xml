@@ -1,0 +1,68 @@
+<xml>
+
+	<pragma once="true" />
+	<set name="STAGEWEBVIEW_OBJ_DIR" value="${this_dir}/obj" unless="STAGEWEBVIEW_OBJ_DIR" />
+
+	<section if="windows">
+		<compiler id="MSVC">
+			<objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}${OBJEXT}${OBJCACHE}${XPOBJ}" unless="winrt" />
+			<objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}-rt${OBJEXT}${OBJCACHE}${XPOBJ}" if="winrt" />
+			<objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}-arm${OBJEXT}${OBJCACHE}${XPOBJ}" if="HXCPP_ARM64" />
+		</compiler>
+
+		<linker id="dll">
+			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
+		</linker>
+
+		<linker id="exe">
+			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
+		</linker>
+
+		<linker id="static_link">
+			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
+		</linker>
+	</section>
+
+	<include name="${this_dir}/Files.xml" />
+
+	<!-- The engines' own group keeps GTK's flags, and hxcpp's precompiled header, away from the generated Haxe sources.
+	     Linux's GTK and WebKitGTK flags come from pkg-config through ExtraParamsMacro, because hxcpp build files cannot
+	     run it themselves. The haxe tag gives these groups the same hxcpp ABI defines. -->
+	<files id="stagewebview-bindings" tags="haxe,static">
+		<compilerflag value="-I${this_dir}" />
+		<compilerflag value="-I${this_dir}/include" />
+		<compilerflag value="-I${this_dir}/include/stagewebview/windows" if="windows" />
+		<compilerflag value="-I${HXCPP}/include" />
+		<file name="${this_dir}/bindings/WebViewBindings.cpp" />
+		<file name="${this_dir}/bindings/WindowBindings.cpp" />
+	</files>
+
+	<files id="haxe">
+		<compilerflag value="-I${this_dir}" />
+		<compilerflag value="-I${this_dir}/include" />
+		<compilerflag value="-I${this_dir}/include/stagewebview/windows" if="windows" />
+	</files>
+
+	<files id="__main__">
+		<compilerflag value="-I${this_dir}" />
+		<compilerflag value="-I${this_dir}/include" />
+		<compilerflag value="-I${this_dir}/include/stagewebview/windows" if="windows" />
+	</files>
+
+	<target id="haxe">
+		<section unless="android">
+			<files id="stagewebview" />
+			<files id="stagewebview-bindings" />
+		</section>
+
+		<section if="macos || iphone">
+			<files id="stagewebview-apple" />
+		</section>
+
+		<section if="macos">
+			<vflag name="-framework" value="WebKit" />
+			<vflag name="-framework" value="Cocoa" />
+		</section>
+	</target>
+
+</xml>

@@ -6,7 +6,7 @@
 #include <hx/GC.h>
 #include <hx/Native.h>
 
-#include "WebViewBackend.h"
+#include <stagewebview/WebViewBackend.h>
 #include "WebViewBindings.h"
 
 namespace {

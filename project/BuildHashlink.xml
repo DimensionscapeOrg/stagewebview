@@ -4,7 +4,9 @@
 	<set name="LIBHL_PATH" value="" unless="LIBHL_PATH" />
 	<set name="LIBHL_DLL_DIR" value="" unless="LIBHL_DLL_DIR" />
 	<set name="OUTPUT_DIR" value="${this_dir}/../ndll/Windows64" unless="OUTPUT_DIR" />
-	<set name="STAGEWEBVIEW_OBJ_DIR" value="${this_dir}/../build/obj" unless="STAGEWEBVIEW_OBJ_DIR" />
+	<set name="STAGEWEBVIEW_OBJ_DIR" value="${this_dir}/obj" unless="STAGEWEBVIEW_OBJ_DIR" />
+
+	<include name="${this_dir}/Files.xml" />
 
 	<section if="windows">
 		<compiler id="MSVC">
@@ -17,16 +19,14 @@
 			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
 		</linker>
 
-		<files id="stagewebview">
-			<compilerflag value="-I${this_dir}/.." />
-			<compilerflag value="-I${this_dir}/../lib/windows" />
+		<files id="stagewebview-hashlink">
+			<compilerflag value="-I${this_dir}/include" />
+			<compilerflag value="-I${this_dir}/include/stagewebview/windows" />
 			<compilerflag value="-I${HASHLINK_INCLUDE}" />
 			<compilerflag value="-DINT_MAX=2147483647" />
 
-			<file name="${this_dir}/../lib/WebViewBackend.cpp" />
-			<file name="${this_dir}/../lib/WebViewHashLink.cpp" />
-			<file name="${this_dir}/../lib/WindowBackend.cpp" />
-			<file name="${this_dir}/../lib/WindowHashLink.cpp" />
+			<file name="${this_dir}/bindings/WebViewHashLink.cpp" />
+			<file name="${this_dir}/bindings/WindowHashLink.cpp" />
 		</files>
 	</section>
 
@@ -34,6 +34,7 @@
 		<outdir name="${OUTPUT_DIR}" />
 		<ext value=".hdll" />
 		<files id="stagewebview" />
+		<files id="stagewebview-hashlink" />
 
 		<section if="LIBHL_DLL_DIR">
 			<copyFile name="libhl.dll" from="${LIBHL_DLL_DIR}" toolId="dll" overwrite="true" />

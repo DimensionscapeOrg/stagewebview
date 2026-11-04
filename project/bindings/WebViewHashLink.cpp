@@ -13,7 +13,7 @@
 
 #include <cstring>
 
-#include "WebViewBackend.h"
+#include <stagewebview/WebViewBackend.h>
 
 namespace {
 
