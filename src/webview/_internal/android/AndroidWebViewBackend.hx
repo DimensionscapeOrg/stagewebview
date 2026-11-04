@@ -20,32 +20,6 @@ import webview.WebViewOptions;
 @:noCompletion
 class AndroidWebViewBackend implements IWebViewBackend
 {
-	// Same shim as PlatformWebView::bridgeScript in project/src/WebViewBackendPlatform.cpp, posting through the
-	// JavascriptInterface the Java host registers as __stagewebview.
-	private static inline final BRIDGE_SCRIPT:String = "(function () {
-	if (window.chrome && window.chrome.webview) { return; }
-	var post = function (message) { __stagewebview.postMessage(message); };
-	var listeners = [];
-	var bridge = {
-		postMessage: function (message) { post(typeof message === 'string' ? message : JSON.stringify(message)); },
-		addEventListener: function (type, listener) {
-			if (type === 'message' && typeof listener === 'function' && listeners.indexOf(listener) < 0) { listeners.push(listener); }
-		},
-		removeEventListener: function (type, listener) {
-			var index = listeners.indexOf(listener);
-			if (type === 'message' && index >= 0) { listeners.splice(index, 1); }
-		}
-	};
-	Object.defineProperty(bridge, '__stagewebviewDispatch', { value: function (data) {
-		var event = { data: data, source: bridge };
-		listeners.slice().forEach(function (listener) {
-			try { listener.call(bridge, event); } catch (error) { setTimeout(function () { throw error; }); }
-		});
-	} });
-	window.chrome = window.chrome || {};
-	window.chrome.webview = bridge;
-})();";
-
 	private static inline final RECORD_SEPARATOR:String = "\x1E";
 	private static inline final FIELD_SEPARATOR:String = "\x1F";
 	private static inline final PART_SEPARATOR:String = "\x1D";
@@ -80,8 +54,7 @@ class AndroidWebViewBackend implements IWebViewBackend
 		}
 
 		var mediaRequiresGesture = config.mediaPlaybackRequiresUserAction == null ? -1 : (config.mediaPlaybackRequiresUserAction ? 1 : 0);
-		__id = AndroidHost.create(container, config.debug == true || config.enableDevTools == true, config.userAgent, mediaRequiresGesture,
-			BRIDGE_SCRIPT);
+		__id = AndroidHost.create(container, config.debug == true || config.enableDevTools == true, config.userAgent, mediaRequiresGesture, null);
 		if (__id <= 0)
 		{
 			throw "Failed to create a WebView";

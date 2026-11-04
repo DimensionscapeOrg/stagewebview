@@ -59,6 +59,33 @@ public final class StageWebViewHost {
 	private static final ConcurrentHashMap<Integer, ArrayBlockingQueue<Boolean>> DECISIONS = new ConcurrentHashMap<>();
 	private static final ConcurrentLinkedQueue<String> EVENTS = new ConcurrentLinkedQueue<>();
 
+	// The same shim as PlatformWebView::bridgeScript in project/src/WebViewBackendPlatform.cpp, posting through the
+	// JavascriptInterface registered as __stagewebview.
+	private static final String BRIDGE_SCRIPT =
+		"(function () {\n" +
+		"	if (window.chrome && window.chrome.webview) { return; }\n" +
+		"	var post = function (message) { __stagewebview.postMessage(message); };\n" +
+		"	var listeners = [];\n" +
+		"	var bridge = {\n" +
+		"		postMessage: function (message) { post(typeof message === 'string' ? message : JSON.stringify(message)); },\n" +
+		"		addEventListener: function (type, listener) {\n" +
+		"			if (type === 'message' && typeof listener === 'function' && listeners.indexOf(listener) < 0) { listeners.push(listener); }\n" +
+		"		},\n" +
+		"		removeEventListener: function (type, listener) {\n" +
+		"			var index = listeners.indexOf(listener);\n" +
+		"			if (type === 'message' && index >= 0) { listeners.splice(index, 1); }\n" +
+		"		}\n" +
+		"	};\n" +
+		"	Object.defineProperty(bridge, '__stagewebviewDispatch', { value: function (data) {\n" +
+		"		var event = { data: data, source: bridge };\n" +
+		"		listeners.slice().forEach(function (listener) {\n" +
+		"			try { listener.call(bridge, event); } catch (error) { setTimeout(function () { throw error; }); }\n" +
+		"		});\n" +
+		"	} });\n" +
+		"	window.chrome = window.chrome || {};\n" +
+		"	window.chrome.webview = bridge;\n" +
+		"})();";
+
 	private StageWebViewHost() {}
 
 	private static final class Entry {
@@ -76,7 +103,7 @@ public final class StageWebViewHost {
 
 		Entry(int id, String bridgeScript) {
 			this.id = id;
-			this.bridgeScript = bridgeScript;
+			this.bridgeScript = bridgeScript != null ? bridgeScript : BRIDGE_SCRIPT;
 		}
 
 		/** Bridge plus init scripts, in the order a page must see them. */
