@@ -19,6 +19,19 @@ class StageWebViewTest extends Test
 		webView.dispose();
 	}
 
+	public function testDeveloperToolsFollowTheBuildUnlessAskedFor():Void
+	{
+		var webView = new StageWebView();
+		var asked = new StageWebView({enableDevTools: true});
+
+		Assert.equals(#if debug true #else false #end, @:privateAccess webView.__webViewOptions.enableDevTools);
+		Assert.equals(#if debug true #else false #end, @:privateAccess webView.__webViewOptions.debug);
+		Assert.isTrue(@:privateAccess asked.__webViewOptions.enableDevTools);
+
+		webView.dispose();
+		asked.dispose();
+	}
+
 	public function testConstructorOptionsCanDisableMediaPlaybackRequirement():Void
 	{
 		var configured = new StageWebView({mediaPlaybackRequiresUserAction: false});

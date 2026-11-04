@@ -506,10 +506,11 @@ final class StageWebView extends EventDispatcher
 		options.mediaPlaybackRequiresUserAction = true;
 		options.enableContextMenu = true;
 		options.enableKeyboardShortcuts = true;
-		options.enableDevTools = true;
+		// Developer tools stay out of release builds, unless the configuration asks for them
+		options.enableDevTools = #if debug true #else false #end;
 		options.enableStatusBar = true;
 		options.enableZoom = true;
-		options.debug = true;
+		options.debug = #if debug true #else false #end;
 		return options;
 	}
 
