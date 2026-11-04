@@ -203,6 +203,10 @@ haxelib run dox -i docs/xml/cpp.xml -o docs/api --title StageWebView -in "^webvi
 
 The generated site ends up in `docs/api`.
 
+## License
+
+StageWebView is under the Apache License 2.0, as `LICENSE` says. `NOTICE` lists the third-party code it includes.
+
 ## Scope
 
 - Windows, Linux, macOS, iOS and Android

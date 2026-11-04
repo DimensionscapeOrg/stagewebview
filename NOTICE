@@ -1,0 +1,15 @@
+StageWebView
+Copyright Dimensionscape
+
+This product includes third-party code under its own license:
+
+lib/vendor/webview.h
+	webview, https://github.com/webview/webview
+	Copyright (c) 2017 Serge Zaitsev
+	Copyright (c) 2022 Steffen André Langnes
+	MIT License. The license text is at the top of the file.
+
+lib/windows/WebView2.h, lib/windows/WebView2EnvironmentOptions.h
+	Microsoft Edge WebView2 SDK, https://aka.ms/webview2
+	Copyright (C) Microsoft Corporation
+	BSD-style license, as the headers state.

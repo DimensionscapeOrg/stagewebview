@@ -1,7 +1,7 @@
 {
   "name": "StageWebView",
   "url": "https://github.com/dimensionscapeOrg/stagewebview",
-  "license": "MIT",
+  "license": "Apache",
   "tags": [
     "openfl",
     "stagewebview",
