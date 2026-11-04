@@ -8,5 +8,5 @@
 -D windows
 -cpp docs/tmp/cpp
 -xml docs/xml/cpp.xml
---macro include('webview')
+--macro include('webview', true, ['webview._internal.*'])
 --macro include('openfl.media.StageWebView')

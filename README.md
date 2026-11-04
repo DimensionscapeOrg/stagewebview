@@ -200,7 +200,7 @@ The docs are generated in two steps:
 
 ```bash
 haxe build/docs-cpp.hxml
-haxelib run dox -i docs/xml/cpp.xml -o docs/api --title StageWebView -in "^webview$" -in "^webview[.]" -in "^openfl$" -in "^openfl[.]media$" -in "^openfl[.]media[.]StageWebView$" -in "^openfl[.]events$" -in "^openfl[.]events[.](LocationChangeEvent|WebViewDrawEvent)$"
+haxelib run dox -i docs/xml/cpp.xml -o docs/api --title StageWebView -in "^webview$" -in "^webview[.]" -ex "^webview[.]_internal" -in "^openfl$" -in "^openfl[.]media$" -in "^openfl[.]media[.]StageWebView$" -in "^openfl[.]events$" -in "^openfl[.]events[.](LocationChangeEvent|WebViewDrawEvent)$"
 ```
 
 The generated site ends up in `docs/api`.

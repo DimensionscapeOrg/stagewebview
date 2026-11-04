@@ -1,7 +1,7 @@
-package _internal.webview.android;
+package webview._internal.android;
 
 #if android
-import _internal.webview.IWebViewBackend;
+import webview._internal.IWebViewBackend;
 import haxe.Json;
 import webview.NativeHandleKind;
 import webview.PdfOptions;

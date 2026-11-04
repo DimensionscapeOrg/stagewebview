@@ -135,7 +135,7 @@ class ExtraParamsMacro
 
 		var meta = "@:buildXml(\"" + xml.toString() + "\")";
 		// hxcpp honours one @:buildXml per class and WebViewExterns already has one, so attach to the backend class.
-		Compiler.addMetadata(meta, "_internal.webview.WebViewBackend");
+		Compiler.addMetadata(meta, "webview._internal.WebViewBackend");
 	}
 
 	private static function __pkgConfig(arguments:Array<String>):Array<String>

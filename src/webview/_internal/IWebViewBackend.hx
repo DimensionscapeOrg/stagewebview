@@ -1,4 +1,4 @@
-package _internal.webview;
+package webview._internal;
 
 import webview.NativeHandleKind;
 import webview.PdfOptions;

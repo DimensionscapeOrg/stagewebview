@@ -1,10 +1,10 @@
 package webview;
 
-import _internal.webview.IWebViewBackend;
+import webview._internal.IWebViewBackend;
 #if android
-import _internal.webview.android.AndroidWebViewBackend;
+import webview._internal.android.AndroidWebViewBackend;
 #else
-import _internal.webview.WebViewBackend;
+import webview._internal.WebViewBackend;
 #end
 
 /**
@@ -451,7 +451,7 @@ class WebView
 		#if android
 		return AndroidWebViewBackend.processEvents();
 		#else
-		return _internal.webview.native.WebViewExterns.processEvents();
+		return webview._internal.native.WebViewExterns.processEvents();
 		#end
 	}
 
@@ -704,7 +704,7 @@ class WebView
 		#if (stagewebview_supported && android)
 		return true;
 		#elseif stagewebview_supported
-		return _internal.webview.native.WebViewExterns.isSupported();
+		return webview._internal.native.WebViewExterns.isSupported();
 		#else
 		return false;
 		#end

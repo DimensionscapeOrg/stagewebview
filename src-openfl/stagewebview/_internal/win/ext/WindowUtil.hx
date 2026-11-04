@@ -94,31 +94,31 @@ private class WindowBindings
 		return ACTIVITY;
 
 	public static inline function createChildWindow(windowHandle:WebViewHandle, x:Int, y:Int, width:Int, height:Int):WebViewHandle
-		return _internal.webview.android.AndroidHost.createContainer(x, y, width, height);
+		return webview._internal.android.AndroidHost.createContainer(x, y, width, height);
 
 	public static inline function showWindow(handle:WebViewHandle):Void
 	{
-		if (handle != ACTIVITY) _internal.webview.android.AndroidHost.setContainerVisible(handle, true);
+		if (handle != ACTIVITY) webview._internal.android.AndroidHost.setContainerVisible(handle, true);
 	}
 
 	public static inline function hideWindow(handle:WebViewHandle):Void
 	{
-		if (handle != ACTIVITY) _internal.webview.android.AndroidHost.setContainerVisible(handle, false);
+		if (handle != ACTIVITY) webview._internal.android.AndroidHost.setContainerVisible(handle, false);
 	}
 
 	public static inline function destroyWindow(handle:WebViewHandle):Void
 	{
-		if (handle != ACTIVITY) _internal.webview.android.AndroidHost.destroyContainer(handle);
+		if (handle != ACTIVITY) webview._internal.android.AndroidHost.destroyContainer(handle);
 	}
 
 	public static inline function moveWindow(handle:WebViewHandle, x:Int, y:Int, width:Int, height:Int):Void
 	{
-		if (handle != ACTIVITY) _internal.webview.android.AndroidHost.moveContainer(handle, x, y, width, height);
+		if (handle != ACTIVITY) webview._internal.android.AndroidHost.moveContainer(handle, x, y, width, height);
 	}
 
 	public static inline function setFocus(handle:WebViewHandle):Void
 	{
-		if (handle == ACTIVITY) _internal.webview.android.AndroidHost.focusHost();
+		if (handle == ACTIVITY) webview._internal.android.AndroidHost.focusHost();
 	}
 
 	public static inline function getHandleKey(handle:WebViewHandle):String

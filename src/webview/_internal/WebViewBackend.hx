@@ -1,7 +1,7 @@
-package _internal.webview;
+package webview._internal;
 
-import _internal.webview.IWebViewBackend;
-import _internal.webview.native.WebViewExterns;
+import webview._internal.IWebViewBackend;
+import webview._internal.native.WebViewExterns;
 import webview.NativeHandleKind;
 import webview.PdfOptions;
 import webview.WebViewHandle;

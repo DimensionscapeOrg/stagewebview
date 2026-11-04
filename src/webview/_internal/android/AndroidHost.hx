@@ -1,4 +1,4 @@
-package _internal.webview.android;
+package webview._internal.android;
 
 #if android
 import lime.system.JNI;

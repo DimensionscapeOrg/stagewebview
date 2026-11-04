@@ -1,4 +1,4 @@
-package _internal.webview.native;
+package webview._internal.native;
 
 import webview.WebViewHandle;
 

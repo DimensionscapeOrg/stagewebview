@@ -1,6 +1,6 @@
 package tests.webview;
 
-import _internal.webview.IWebViewBackend;
+import webview._internal.IWebViewBackend;
 import webview.NativeHandleKind;
 import webview.PdfOptions;
 import webview.WebViewHandle;
