@@ -562,6 +562,11 @@ PlatformWebView *createPlatformWebView(int debug, void *window, const WebViewCre
 	return new GtkPlatformWebView(handle, ownedHost);
 }
 
+bool PlatformWebView::isSupported()
+{
+	return gtk::ensureInitialized();
+}
+
 int PlatformWebView::processEvents()
 {
 	// Bounded so a page that keeps the loop busy cannot starve the host's own frame.

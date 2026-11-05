@@ -363,7 +363,7 @@ void *WebViewBackend::getNativeHandle(int kind) const
 	return platform != nullptr ? platform->getNativeHandle(kind) : nullptr;
 }
 
-int WebViewBackend::printToPdf(const char *path, const WebViewPdfOptions &options, WebViewPdfCallback callback, void *userData)
+int WebViewBackend::printToPdf(const char *path, const WebViewPdfOptions &options, WebViewResultCallback callback, void *userData)
 {
 	if (path == nullptr || path[0] == '\0')
 	{
@@ -382,7 +382,7 @@ void WebViewBackend::webView2ControllerSetBounds(void *controllerHandle, int wid
 
 bool WebViewBackend::isSupported()
 {
-	return true;
+	return PlatformWebView::isSupported();
 }
 
 int WebViewBackend::processEvents()

@@ -168,6 +168,8 @@ The engines know nothing of Haxe, so a framework can build them into its own bin
 <include name="${haxelib:StageWebView}/project/Files.xml" />
 ```
 
+A binary that every program loads cannot link WebKitGTK, or a system without it could start none of them. On Linux such a framework builds the `stagewebview-client` group instead of `stagewebview`. It needs no GTK or WebKitGTK to build, and opens `ndll/Linux64/stagewebview-gtk.so` the first time a webview is asked for, looking beside the binary, then beside the program, then wherever the system looks. Where the library or WebKitGTK is missing, `WebViewBackend::isSupported()` is `false`, and nothing else notices. `project/build-gtk-engine.sh` builds the library, which CI does on its oldest runner.
+
 Depending on this haxelib costs a program nothing unless it uses `webview.WebView`: the GTK flags and the HashLink runtime are only set up as that class's backend is built.
 
 ## Classpath behavior

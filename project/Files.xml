@@ -17,6 +17,17 @@
 		<depend name="${this_dir}/src/PlatformWebView.h" unless="windows" />
 	</files>
 
+	<!-- Linux, for a host that cannot link WebKitGTK, in place of the group above: see include/stagewebview/Engine.h. -->
+	<files id="stagewebview-client" tags="haxe,static">
+		<compilerflag value="-I${this_dir}/include" />
+		<file name="${this_dir}/src/WebViewBackendPlatform.cpp" />
+		<file name="${this_dir}/src/EngineClient.cpp" />
+		<depend name="${this_dir}/include/stagewebview/Engine.h" />
+		<depend name="${this_dir}/include/stagewebview/WebViewBackend.h" />
+		<depend name="${this_dir}/include/stagewebview/WindowBackend.h" />
+		<depend name="${this_dir}/src/PlatformWebView.h" />
+	</files>
+
 	<!-- macOS and iOS: one WKWebView engine in Objective-C++ (ARC) for both. -->
 	<files id="stagewebview-apple" tags="haxe,static">
 		<compilerflag value="-I${this_dir}/include" />

@@ -45,6 +45,9 @@ public:
 	// Pumps the platform loop once without blocking. Implemented per platform.
 	static int processEvents();
 
+	// Whether a webview can be created here. Implemented per platform.
+	static bool isSupported();
+
 protected:
 	// Installs window.chrome.webview on pages that have no native WebView2 bridge.
 	// postFunction is a JavaScript expression evaluating to function(string) that reaches the host.

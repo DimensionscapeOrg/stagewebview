@@ -633,6 +633,11 @@ PlatformWebView *createPlatformWebView(int debug, void *window, const WebViewCre
 	}
 }
 
+bool PlatformWebView::isSupported()
+{
+	return true;
+}
+
 int PlatformWebView::processEvents()
 {
 	int processed = 0;
