@@ -1,6 +1,6 @@
 #pragma once
 
-// The Linux engine as a library of its own, ndll/Linux64/stagewebview-gtk.so.
+// The Linux engine as a library of its own, stagewebview-gtk.so in ndll/Linux64 and ndll/LinuxArm64.
 //
 // A framework's binary that every program loads cannot link WebKitGTK: without it on the system, no program could start.
 // Such a framework builds src/EngineClient.cpp in place of the engine's sources, and it opens this library when a webview

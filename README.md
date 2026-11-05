@@ -19,7 +19,7 @@ Source: `https://github.com/dimensionscapeOrg/stagewebview`
 | Platform | Engine | Glue | Status |
 | --- | --- | --- | --- |
 | Windows | WebView2 | vendored `webview.h` + `project/src/WebViewBackend.cpp` | built and run in CI |
-| Linux | WebKitGTK 4.1 (GTK 3) | vendored `webview.h` + `project/src/gtk` | built and run on Ubuntu 24.04, X11 and Wayland (through XWayland) |
+| Linux | WebKitGTK 4.1 (GTK 3) | vendored `webview.h` + `project/src/gtk` | built and run on Ubuntu 24.04, X11 and Wayland (through XWayland); the engine library for frameworks ships for x86-64 and ARM64 |
 | macOS | WKWebView | `project/src/apple` (Objective-C++) | built and run in CI (macOS 14, arm64): native tests and both samples |
 | iOS | WKWebView | `project/src/apple` (Objective-C++) | built in CI for the simulator, through hxcpp and as a Lime app; not run |
 | Android | `android.webkit.WebView` | Haxe over `lime.system.JNI` + `android/src` | built and run in CI on an Android 14 emulator (x86_64) |
@@ -168,7 +168,7 @@ The engines know nothing of Haxe, so a framework can build them into its own bin
 <include name="${haxelib:StageWebView}/project/Files.xml" />
 ```
 
-A binary that every program loads cannot link WebKitGTK, or a system without it could start none of them. On Linux such a framework builds the `stagewebview-client` group instead of `stagewebview`. It needs no GTK or WebKitGTK to build, and opens `ndll/Linux64/stagewebview-gtk.so` the first time a webview is asked for, looking beside the binary, then beside the program, then wherever the system looks. Where the library or WebKitGTK is missing, `WebViewBackend::isSupported()` is `false`, and nothing else notices. `project/build-gtk-engine.sh` builds the library, which CI does on its oldest runner.
+A binary that every program loads cannot link WebKitGTK, or a system without it could start none of them. On Linux such a framework builds the `stagewebview-client` group instead of `stagewebview`. It needs no GTK or WebKitGTK to build, and opens `stagewebview-gtk.so`, from `ndll/Linux64` or `ndll/LinuxArm64`, the first time a webview is asked for, looking beside the binary, then beside the program, then wherever the system looks. Where the library or WebKitGTK is missing, `WebViewBackend::isSupported()` is `false`, and nothing else notices. `project/build-gtk-engine.sh` builds the library for the machine it runs on, which CI does on its oldest x86-64 and ARM64 runners.
 
 Depending on this haxelib costs a program nothing unless it uses `webview.WebView`: the GTK flags and the HashLink runtime are only set up as that class's backend is built.
 

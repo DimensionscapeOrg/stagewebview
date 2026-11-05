@@ -113,7 +113,15 @@ jobs:
 
   # On the oldest runner, so that the library loads on as many systems as it can
   gtk-engine:
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            folder: Linux64
+          - runner: ubuntu-22.04-arm
+            folder: LinuxArm64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -125,13 +133,14 @@ jobs:
         run: project/build-gtk-engine.sh
       - name: Check what it exports and needs
         run: |
-          nm -D --defined-only ndll/Linux64/stagewebview-gtk.so | grep -x '.* T stagewebview_engine'
-          test "$(nm -D --defined-only ndll/Linux64/stagewebview-gtk.so | grep -c ' T ')" = 1
-          ldd ndll/Linux64/stagewebview-gtk.so | grep -E 'webkit2gtk-4.1|libgtk-3'
+          library=ndll/${{ matrix.folder }}/stagewebview-gtk.so
+          nm -D --defined-only "$library" | grep -x '.* T stagewebview_engine'
+          test "$(nm -D --defined-only "$library" | grep -c ' T ')" = 1
+          ldd "$library" | grep -E 'webkit2gtk-4.1|libgtk-3'
       - uses: actions/upload-artifact@v4
         with:
-          name: gtk-engine
-          path: ndll/Linux64/stagewebview-gtk.so
+          name: gtk-engine-${{ matrix.folder }}
+          path: ndll/${{ matrix.folder }}/stagewebview-gtk.so
 
   macos:
     runs-on: macos-14
