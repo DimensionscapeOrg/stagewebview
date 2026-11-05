@@ -3,3 +3,15 @@
 
 # Shell scripts run on Linux and macOS runners, and through Git Bash on Windows.
 *.sh text eol=lf
+
+# What git archive leaves out of the haxelib zip
+.gitattributes export-ignore
+.github export-ignore
+.gitignore export-ignore
+.haxelibignore export-ignore
+build export-ignore
+docs export-ignore
+ndll/**/*.hash export-ignore
+project-docs.xml export-ignore
+samples/docs export-ignore
+tests export-ignore

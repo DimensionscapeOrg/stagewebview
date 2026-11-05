@@ -10,7 +10,7 @@ It exposes two public APIs:
 - `webview.WebView` for plain Haxe projects
 - `openfl.media.StageWebView` for OpenFL projects that want AIR-style behavior
 
-The native backend is vendored in this repository. hxcpp talks to it directly, HashLink uses a shipped `stagewebview.hdll` (Windows), and the OpenFL layer stays optional unless you actually import it.
+The native backend is vendored in this repository. hxcpp talks to it directly, HashLink uses a shipped `stagewebview.hdll` (Windows), and the OpenFL layer stays optional unless you actually import it. Lime builds the same engines into its own binaries for `lime.ui.WebView`, so a Lime application does not need this library's Haxe API at all.
 
 Source: `https://github.com/dimensionscapeOrg/stagewebview`
 
@@ -50,7 +50,8 @@ The internal backend is kept separate on purpose. That makes the public API clea
 - Hidden webviews (`startHidden`) and `printToPDF()` on every platform
 - Dox-generated API docs
 - Samples for basic embedding, live sites, JavaScript bridging, browser UI, docs browsing and PDF reports
-- Release prebuilts for `Windows64`
+- A release prebuilt `stagewebview.hdll` for `Windows64`
+- `project/Files.xml` and a C++ API for frameworks that build the engines in
 
 ## `webview.WebView`
 
@@ -145,7 +146,7 @@ The callback runs from the event loop, never inside the engine's own handler, so
 The OpenFL facade places a native child over the stage at `viewPort`. It gets the stage's window from Lime's `Window.nativeHandle`; with a Lime from before 8.4.0, which does not have it, it finds the window by giving it a title nothing else has for a moment.
 
 - Windows: a child `HWND`.
-- Linux: a GTK popup window reparented into SDL's X11 window. Lime 8.3.2's SDL has no Wayland driver, so in a Wayland session the app runs on XWayland and the library asks GDK for X11 as well; embedding then works the same way. If GTK is forced onto Wayland (`GDK_BACKEND=wayland`) there is no X11 window to embed into: hidden webviews and PDF output still work, and the facade dispatches an `ErrorEvent` instead of showing the view.
+- Linux: a GTK popup window reparented into SDL's X11 window. Lime's SDL has no Wayland driver, so in a Wayland session the app runs on XWayland and the library asks GDK for X11 as well; embedding then works the same way. If GTK is forced onto Wayland (`GDK_BACKEND=wayland`) there is no X11 window to embed into: hidden webviews and PDF output still work, and the facade dispatches an `ErrorEvent` instead of showing the view.
 - macOS and iOS: a container view added over SDL's view, sized in points.
 - Android: a `FrameLayout` added over SDL's surface.
 
@@ -173,7 +174,7 @@ The repository includes a few demo projects:
 - `project-intermediate.xml`: live-site demo
 - `project-bridge.xml`: JavaScript-to-Haxe bridge demo
 - `project-browser.xml`: browser-style sample with tabs and controls
-- `project-docs.xml`: local viewer for the generated API docs
+- `project-docs.xml`: local viewer for the generated API docs, in the repository only
 - `project-report.xml`: renders a report in a hidden webview, fills it over the bridge, prints it to PDF and shows the filled report on stage; runs on every platform
 - `samples/pure-haxe/build-cpp.hxml`: standalone `webview.WebView` sample with its own native window, local HTML deck, bridge messaging, window resizing, and Haxelib search routing
 - `samples/pdf/build-cpp.hxml`: headless plain-Haxe PDF sample for Windows, Linux and macOS; exits 0 once the PDF is written
@@ -214,6 +215,16 @@ haxelib run dox -i docs/xml/cpp.xml -o docs/api --title StageWebView -in "^webvi
 ```
 
 The generated site ends up in `docs/api`.
+
+## Upgrading from 0.7
+
+- `WebView.isSupported` is a property, read at run time, so it is no longer a constant. It is `false` on Windows without the WebView2 Runtime, and on targets with no backend, which an HTML5 build made on Windows used to get wrong.
+- `WebView2Loader.dll` and the `EBWebView` folder are no longer shipped or copied beside the application. Nothing needs them, so remove them from any packaging that expects them. Applications still need the WebView2 Runtime, as they always did.
+- The OpenFL facade keeps developer tools off outside `-debug` builds. Pass `{enableDevTools: true}` to turn them on.
+- A navigation cancelled through `onLocationChanging`, or stopped with `stop()`, no longer reaches `onError`.
+- With a Lime that has `Window.nativeHandle`, the OpenFL facade gets the stage's window from it, so the window's title no longer changes for a moment.
+- Internal classes moved from `_internal.webview` to `webview._internal`. The native sources moved from `lib` to `project`, and `build/BuildNative.xml` and `build/BuildHashlink.xml` are now `project/Build.xml` and `project/BuildHashlink.xml`.
+- `haxelib.json` said MIT in error. The license has always been the Apache License 2.0.
 
 ## License
 
