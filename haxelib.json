@@ -20,9 +20,9 @@
     "web"
   ],
   "description": "Webview library for Haxe on Windows (WebView2), Linux (WebKitGTK), macOS and iOS (WKWebView) and Android, with a public webview.WebView API, an optional OpenFL StageWebView facade, hidden webviews, PDF output, direct hxcpp bindings, and a HashLink hdll on Windows.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "classPath": "src",
-  "releasenote": "Now a shared library: a framework can build the engines into its own binary through project/Files.xml, and Lime builds them in for lime.ui.WebView, opening the Linux engine on demand. webview.WebView has names that read like Haxe and typed options, and evaluateJavaScript can report what a script gives. No DLLs ship beside the application. isSupported is a run-time property that checks for the engine. Developer tools are off in release builds of the OpenFL facade. A cancelled navigation no longer reports an error. See Upgrading from 0.7 in the README.",
+  "releasenote": "Adds the Linux engine library for ARM64, so a framework that opens it on demand, as Lime does, can show a webview on ARM64 Linux as well as x86-64.",
   "contributors": [
     "Dimensionscape"
   ],
