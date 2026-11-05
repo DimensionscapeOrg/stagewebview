@@ -138,8 +138,10 @@ class NativeWebViewTest extends Test
 		Assert.isTrue(__pumpUntil(function():Bool return completed), "onComplete did not fire");
 
 		var asked = 0;
+		var changes:Array<String> = [];
 		var errors:Array<String> = [];
 		__webView.onError = errors.push;
+		__webView.onURLChange = changes.push;
 		__webView.onNavigate = function(location:String):Bool
 		{
 			asked++;
@@ -155,6 +157,7 @@ class NativeWebViewTest extends Test
 			Sys.sleep(0.01);
 		}
 		Assert.equals(0, errors.length, Std.string(errors));
+		Assert.equals(0, changes.length, Std.string(changes));
 	}
 
 	public function testBridgeCarriesMessagesBothWays():Void

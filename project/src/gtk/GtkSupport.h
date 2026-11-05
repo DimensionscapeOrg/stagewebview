@@ -8,5 +8,14 @@ namespace gtk {
 // GDK_BACKEND, when set, still wins.
 bool ensureInitialized();
 
+// GDK takes any X error it does not expect as fatal. While this lasts it does not, and what GTK has queued goes out before
+// the host's window does, on a connection of the host's own: the requests would otherwise name a window that died with it.
+class WindowErrorTrap
+{
+public:
+	WindowErrorTrap();
+	~WindowErrorTrap();
+};
+
 } // namespace gtk
 } // namespace stagewebview

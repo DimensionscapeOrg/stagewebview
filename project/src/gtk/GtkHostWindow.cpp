@@ -42,6 +42,29 @@ bool ensureInitialized()
 	return state == 1;
 }
 
+WindowErrorTrap::WindowErrorTrap()
+{
+	#ifdef GDK_WINDOWING_X11
+	GdkDisplay *display = gdk_display_get_default();
+	if (display != nullptr && GDK_IS_X11_DISPLAY(display))
+	{
+		gdk_x11_display_error_trap_push(display);
+	}
+	#endif
+}
+
+WindowErrorTrap::~WindowErrorTrap()
+{
+	#ifdef GDK_WINDOWING_X11
+	GdkDisplay *display = gdk_display_get_default();
+	if (display != nullptr && GDK_IS_X11_DISPLAY(display))
+	{
+		gdk_display_sync(display);
+		gdk_x11_display_error_trap_pop_ignored(display);
+	}
+	#endif
+}
+
 } // namespace gtk
 
 namespace {
@@ -243,6 +266,7 @@ void windowDestroy(void *handle)
 {
 	if (GtkWidget *window = asGtkWindow(handle))
 	{
+		gtk::WindowErrorTrap trap;
 		childWindows().erase(handle);
 		gtk_widget_destroy(window);
 	}

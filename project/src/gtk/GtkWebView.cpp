@@ -65,6 +65,8 @@ public:
 
 	~GtkPlatformWebView() override
 	{
+		gtk::WindowErrorTrap trap;
+
 		if (view != nullptr)
 		{
 			g_signal_handlers_disconnect_by_data(view, this);
@@ -95,6 +97,7 @@ public:
 
 	int navigate(const char *url) override
 	{
+		awaitingDecision = true;
 		return static_cast<int>(webview_navigate(handle, url != nullptr ? url : ""));
 	}
 
@@ -443,6 +446,7 @@ private:
 
 		if (self->notifyLocationChanging(uri != nullptr ? uri : ""))
 		{
+			self->awaitingDecision = false;
 			webkit_policy_decision_ignore(decision);
 			return TRUE;
 		}
@@ -450,11 +454,22 @@ private:
 		return FALSE;
 	}
 
-	static void onUriChanged(WebKitWebView *view, GParamSpec *, gpointer data)
+	// WebKit names what it was asked to load before anyone has decided on it, and names the old page again if it is refused.
+	void reportLocation()
 	{
-		auto *self = static_cast<GtkPlatformWebView *>(data);
 		const gchar *uri = webkit_web_view_get_uri(view);
-		self->notifyLocationChange(uri != nullptr ? uri : "");
+		std::string location = uri != nullptr ? uri : "";
+
+		if (!awaitingDecision && location != lastLocation)
+		{
+			lastLocation = location;
+			notifyLocationChange(location);
+		}
+	}
+
+	static void onUriChanged(WebKitWebView *, GParamSpec *, gpointer data)
+	{
+		static_cast<GtkPlatformWebView *>(data)->reportLocation();
 	}
 
 	static void onLoadChanged(WebKitWebView *, WebKitLoadEvent event, gpointer data)
@@ -465,6 +480,11 @@ private:
 		{
 			self->loadFailed = false;
 		}
+		else if (event == WEBKIT_LOAD_COMMITTED)
+		{
+			self->awaitingDecision = false;
+			self->reportLocation();
+		}
 		else if (event == WEBKIT_LOAD_FINISHED && !self->loadFailed)
 		{
 			self->notifyComplete();
@@ -474,6 +494,7 @@ private:
 	static gboolean onLoadFailed(WebKitWebView *, WebKitLoadEvent, gchar *, GError *error, gpointer data)
 	{
 		auto *self = static_cast<GtkPlatformWebView *>(data);
+		self->awaitingDecision = false;
 		self->loadFailed = true;
 
 		// The host stopped it, which is not a failure
@@ -503,7 +524,9 @@ private:
 	GtkWidget *ownedHost = nullptr;
 	WebKitWebView *view = nullptr;
 	gulong messageHandlerId = 0;
+	bool awaitingDecision = false;
 	bool loadFailed = false;
+	std::string lastLocation;
 };
 
 } // namespace
