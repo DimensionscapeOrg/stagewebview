@@ -86,8 +86,17 @@ class Main extends Sprite
 					__renderer.postMessage(ReportDocument.fillMessage(__hostName()));
 
 				case "filled":
-					__report("Template filled with " + data.rows + " rows; printing to " + __pdfPath);
-					__renderer.printToPDF(__pdfPath, {}, __onPrinted);
+					__renderer.evaluateJavaScript("document.title", function(success:Bool, title:String):Void
+					{
+						if (!success)
+						{
+							__report("FAIL: " + title);
+							return;
+						}
+
+						__report(Json.parse(title) + " filled with " + data.rows + " rows; printing to " + __pdfPath);
+						__renderer.printToPDF(__pdfPath, {}, __onPrinted);
+					});
 
 				default:
 			}
