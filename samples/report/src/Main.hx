@@ -119,7 +119,7 @@ class Main extends Sprite
 		}
 
 		__onResize(null);
-		__preview.loadHTML(ReportDocument.html());
+		__preview.loadString(ReportDocument.html());
 	}
 
 	private function __onPreviewMessage(event:DataEvent):Void

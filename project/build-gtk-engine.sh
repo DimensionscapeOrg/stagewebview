@@ -7,7 +7,7 @@ mkdir -p ../ndll/Linux64
 
 # shellcheck disable=SC2046
 ${CXX:-g++} -std=c++14 -O2 -fPIC -shared -fvisibility=hidden -fvisibility-inlines-hidden -static-libstdc++ -static-libgcc \
-	-Iinclude -Wl,--no-undefined -Wl,--as-needed -o ../ndll/Linux64/stagewebview-gtk.so \
+	-Iinclude -Wl,--no-undefined -Wl,--as-needed -Wl,--version-script=src/gtk/GtkEngine.map -o ../ndll/Linux64/stagewebview-gtk.so \
 	src/WebViewBackendPlatform.cpp src/gtk/GtkWebView.cpp src/gtk/GtkHostWindow.cpp src/gtk/GtkEngine.cpp \
 	$(pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1 x11)
 
