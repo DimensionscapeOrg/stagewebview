@@ -198,20 +198,20 @@ static void onMessageThunk(void *userData, const std::string &message)
 	invokeString(callbacks->onMessage, message);
 }
 
-// Owns the Haxe completion callback of one printToPdf request until the platform reports back.
-struct HxcppPdfRequest
+// Owns the Haxe completion callback of one request until the platform reports back.
+struct HxcppResultRequest
 {
 	RootedCallback callback;
 };
 
-static void onPdfCompleteThunk(void *userData, bool success, const std::string &message)
+static void onResultThunk(void *userData, bool success, const std::string &message)
 {
-	auto *request = reinterpret_cast<HxcppPdfRequest *>(userData);
+	auto *request = reinterpret_cast<HxcppResultRequest *>(userData);
 	HxcppCallbackScope scope;
 	if (request->callback.value != nullptr)
 	{
 		Dynamic callback = Dynamic(request->callback.value);
-		callback(success, success ? String() : String(message.c_str()));
+		callback(success, message.empty() ? String() : String(message.c_str()));
 	}
 
 	delete request;
@@ -293,10 +293,30 @@ int HxcppWebViewBindings::addInitScript(void *w, const char *script)
 	return handle != nullptr && handle->backend != nullptr ? handle->backend->addInitScript(script) : -1;
 }
 
-int HxcppWebViewBindings::evaluateJavaScript(void *w, const char *script)
+int HxcppWebViewBindings::evaluateJavaScript(void *w, const char *script, Dynamic onComplete)
 {
 	auto *handle = unwrap(w);
-	return handle != nullptr && handle->backend != nullptr ? handle->backend->evaluateJavaScript(script) : -1;
+	if (handle == nullptr || handle->backend == nullptr)
+	{
+		return -1;
+	}
+
+	if (onComplete == null())
+	{
+		return handle->backend->evaluateJavaScript(script);
+	}
+
+	auto *request = new HxcppResultRequest();
+	request->callback.value = onComplete.mPtr;
+
+	int result = handle->backend->evaluateJavaScript(script, onResultThunk, request);
+	if (result != 0)
+	{
+		// The platform never accepted the request, so the callback will not arrive.
+		delete request;
+	}
+
+	return result;
 }
 
 void HxcppWebViewBindings::setCallbacks(void *w, Dynamic onLocationChanging, Dynamic onLocationChange, Dynamic onComplete, Dynamic onError,
@@ -429,10 +449,10 @@ int HxcppWebViewBindings::printToPdf(void *w, const char *path, double pageWidth
 	options.scale = scale;
 	options.repeatTableHeaders = repeatTableHeaders;
 
-	auto *request = new HxcppPdfRequest();
+	auto *request = new HxcppResultRequest();
 	request->callback.value = onComplete != null() ? onComplete.mPtr : nullptr;
 
-	int result = handle->backend->printToPdf(path, options, onPdfCompleteThunk, request);
+	int result = handle->backend->printToPdf(path, options, onResultThunk, request);
 	if (result != 0)
 	{
 		// The platform never accepted the request, so the callback will not arrive.

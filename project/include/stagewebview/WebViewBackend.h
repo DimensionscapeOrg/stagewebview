@@ -1,6 +1,7 @@
 #pragma once
 
 #include <climits>
+#include <memory>
 #include <string>
 
 #if defined(_WIN32)
@@ -54,9 +55,10 @@ struct WebViewPdfOptions
 	int repeatTableHeaders = -1;
 };
 
-// Called once per printToPdf request, from the platform event loop on the thread that pumps it (never from
-// inside the engine's own handler), so it may dispose the webview or create another.
-typedef void (*WebViewPdfCallback)(void *userData, bool success, const std::string &message);
+// Called once per printToPdf or evaluateJavaScript request, from the platform event loop on the thread that pumps
+// it (never from inside the engine's own handler), so it may dispose the webview or create another. When a request
+// fails, message says why. When a script succeeds, message is its value as JSON, and when a PDF is saved, it is empty.
+typedef void (*WebViewResultCallback)(void *userData, bool success, const std::string &message);
 
 #if !defined(_WIN32)
 class PlatformWebView;
@@ -72,7 +74,7 @@ public:
 	int navigate(const char *url);
 	int setHtml(const char *html);
 	int addInitScript(const char *script);
-	int evaluateJavaScript(const char *script);
+	int evaluateJavaScript(const char *script, WebViewResultCallback callback = nullptr, void *userData = nullptr);
 	void setCallbacks(const WebViewCallbackSet &value);
 	int historyBack();
 	int historyForward();
@@ -89,7 +91,7 @@ public:
 	std::string getLocation() const;
 	std::string getTitle() const;
 	void *getNativeHandle(int kind) const;
-	int printToPdf(const char *path, const WebViewPdfOptions &options, WebViewPdfCallback callback, void *userData);
+	int printToPdf(const char *path, const WebViewPdfOptions &options, WebViewResultCallback callback, void *userData);
 
 	static void webView2ControllerSetBounds(void *controllerHandle, int width, int height);
 	static int processEvents();
@@ -124,6 +126,8 @@ private:
 
 	#if defined(_WIN32)
 	HWND hiddenHost = nullptr;
+	bool loadingHtml = false;
+	std::shared_ptr<bool> open = std::make_shared<bool>(true);
 	ICoreWebView2Controller *controller = nullptr;
 	ICoreWebView2 *core = nullptr;
 

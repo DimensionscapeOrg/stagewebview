@@ -8,7 +8,7 @@ import webview._internal.WebViewBackend;
 #end
 
 /**
-	A framework-agnostic webview wrapper for Haxe applications.
+	A framework-agnostic webview for Haxe applications.
 
 	Backends: WebView2 on Windows, WebKitGTK on Linux, WKWebView on macOS and
 	iOS, and `android.webkit.WebView` on Android.
@@ -22,19 +22,16 @@ import webview._internal.WebViewBackend;
 
 	```haxe
 	import webview.WebView;
-	import webview.WebViewHint;
 
-	var webView = new WebView(nativeWindowHandle, {
-		debug: true
-	});
+	var webView = new WebView(nativeWindowHandle, {devTools: true});
 
-	webView.onLocationChange = function (location:String):Void
+	webView.onURLChange = function(url:String):Void
 	{
-		trace("Now visiting " + location);
+		trace("Now visiting " + url);
 	};
 
-	webView.setSize(1280, 720, WebViewHint.NONE);
-	webView.loadURL("https://haxe.org");
+	webView.resize(1280, 720);
+	webView.load("https://haxe.org");
 	```
 **/
 class WebView
@@ -45,128 +42,72 @@ class WebView
 	**/
 	public static var isSupported(get, never):Bool;
 
+	/** Whether there is a page to go back to. */
+	public var canGoBack(get, never):Bool;
+
+	/** Whether there is a page to go forward to. */
+	public var canGoForward(get, never):Bool;
+
 	/** The native backend handle for this webview instance. */
 	public var handle(get, never):WebViewHandle;
 
-	/** Whether backward history navigation is currently available. */
-	public var isHistoryBackEnabled(get, never):Bool;
-
-	/** Whether forward history navigation is currently available. */
-	public var isHistoryForwardEnabled(get, never):Bool;
-
-	/** The current location reported by the backend. */
-	public var location(get, never):String;
-
-	/**
-		Whether media waits for a user action before it plays. The engine takes this
-		from the constructor's options, so setting it here changes nothing for a
-		webview that already exists.
-
-		Applied on Linux, macOS, iOS and Android. Windows does not apply it yet.
-	**/
-	public var mediaPlaybackRequiresUserAction(get, set):Bool;
-
-	/** The current page title reported by the backend. On WebKitGTK it can update just after `onComplete`. */
+	/** The title of the current page. On WebKitGTK it can update just after `onLoad`. */
 	public var title(get, never):String;
 
-	/** Called after the current page finishes loading. */
-	public var onComplete:Void->Void;
+	/** The URL of the current page, which is `about:blank` for a page from `loadHTML()`. */
+	public var url(get, never):String;
 
-	/** Called when the backend reports a navigation or runtime error. */
+	/** Called when a page could not be loaded, or the backend reports an error. */
 	public var onError:String->Void;
 
-	/** Called when the webview receives focus. */
+	/** Called when the webview takes the focus. */
 	public var onFocusIn:Void->Void;
 
-	/** Called when the webview loses focus. */
+	/** Called when the webview loses the focus. */
 	public var onFocusOut:Void->Void;
 
-	/** Called after the location changes. */
-	public var onLocationChange:String->Void;
+	/** Called when a page has finished loading. */
+	public var onLoad:Void->Void;
+
+	/** Called for each message the page posted. */
+	public var onMessage:String->Void;
 
 	/**
-		Called before the location changes.
+		Called before the webview goes to a URL, while the engine waits, for `load()`
+		and for the page's own navigations. A page from `loadHTML()` goes nowhere, so
+		it is not asked about.
 
 		Return `true` to cancel the navigation.
 	**/
-	public var onLocationChanging:String->Bool;
+	public var onNavigate:String->Bool;
 
-	/** Called when the page posts a message to the host application. */
-	public var onMessage:String->Void;
+	/** Called after the webview went to a URL. */
+	public var onURLChange:String->Void;
 
 	private var __backend:IWebViewBackend;
-	private var __location:String;
-	private var __options:WebViewOptions;
+	private var __embedded:Bool;
 	private var __title:String;
+	private var __url:String;
 
 	private static var __backendFactory:WebViewOptions->WebViewHandle->IWebViewBackend = __createBackend;
 
 	/**
-		Creates a new webview wrapper.
+		Creates a new webview.
 
-	Pass a native window handle when embedding into an existing application
-	window, or omit `window` to let the backend create and own a top-level native
-	window. Use `options.debug` to enable backend debugging when supported.
+		Pass a native window handle to embed it in an existing application window,
+		or omit `window` to let the backend create and own a top-level native window.
 
-	@param window Optional native parent or child window handle that should host
-		the browser surface. Leave this null to create a standalone window.
-		@param options Optional construction settings such as debug mode and future
-			parity flags.
+		@param window Optional native window that hosts the browser surface.
+		@param options Optional construction settings.
 		@throws Dynamic Thrown when the native backend cannot create a webview.
 	**/
-	public function new(?window:WebViewHandle, ?options:Dynamic)
+	public function new(?window:WebViewHandle, ?options:WebViewOptions)
 	{
-		__location = "";
+		__embedded = window != null;
 		__title = "";
-		__options = __cloneOptions(options);
-		__backend = __backendFactory(__options, window);
+		__url = "";
+		__backend = __backendFactory(options != null ? options : {}, window);
 		__configureCallbacks();
-	}
-
-	/**
-		Convenience constructor for explicitly embedding into a host window.
-
-		@param window Native handle for the host window.
-		@param options Optional construction settings.
-		@return A configured `webview.WebView` instance.
-	**/
-	public static inline function fromWindow(window:WebViewHandle, ?options:Dynamic):WebView
-	{
-		return new WebView(window, options);
-	}
-
-	/**
-		Transfers focus into the webview.
-
-		@param direction Optional backend-specific focus direction hint. Use `0`
-			when you do not need directional focus behavior.
-	**/
-	public function assignFocus(direction:Int = 0):Void
-	{
-		if (__backend != null)
-		{
-			__backend.assignFocus(direction);
-		}
-	}
-
-	/**
-		Returns whether backward history navigation is available.
-
-		@return `true` when the current page can navigate backward in history.
-	**/
-	public function canGoBack():Bool
-	{
-		return __backend != null ? __backend.canGoBack() : false;
-	}
-
-	/**
-		Returns whether forward history navigation is available.
-
-		@return `true` when the current page can navigate forward in history.
-	**/
-	public function canGoForward():Bool
-	{
-		return __backend != null ? __backend.canGoForward() : false;
 	}
 
 	/**
@@ -186,48 +127,59 @@ class WebView
 	}
 
 	/**
-		Alias for `dispose()`.
-
-		Use this when you prefer `destroy` naming in non-OpenFL host code.
-	**/
-	public function destroy():Void
-	{
-		dispose();
-	}
-
-	/**
 		Releases the native webview and its backing resources.
 
 		It is safe to call this more than once.
 	**/
-	public function dispose():Void
+	public function close():Void
 	{
 		if (__backend == null)
 		{
 			return;
 		}
 
-		__backend.destroy();
+		__backend.close();
 		__backend = null;
 	}
 
 	/**
-		Returns the current location string reported by the backend.
+		Runs JavaScript in the current page.
 
-		@return The last known URL, or an empty string when no location is known yet.
+		The callback runs from the event loop, as `printToPDF()`'s does. A script's
+		value is the one of its last statement, as JSON. `undefined` gives `null`, a
+		promise is not waited for, and what a value JSON has no form for gives
+		depends on the engine: a function is `{}` on WebView2 and `null` elsewhere. A
+		script that throws fails with why, but Android and older WebView2 Runtimes
+		give `null` instead.
+
+		@param script JavaScript source to run.
+		@param onComplete Receives `true` and the value, or `false` and an error
+			message.
 	**/
-	public function getLocation():String
+	public function evaluateJavaScript(script:String, ?onComplete:(success:Bool, result:String)->Void):Void
 	{
 		if (__backend != null)
 		{
-			var value = __backend.getLocation();
-			if (value != null && value != "")
-			{
-				__location = value;
-			}
+			__backend.evaluateJavaScript(script, onComplete);
 		}
+		else if (onComplete != null)
+		{
+			onComplete(false, "The webview has closed");
+		}
+	}
 
-		return __location;
+	/**
+		Gives the webview the focus.
+
+		@param direction Optional backend-specific focus direction hint. Use `0`
+			when you do not need directional focus behavior.
+	**/
+	public function focus(direction:Int = 0):Void
+	{
+		if (__backend != null)
+		{
+			__backend.focus(direction);
+		}
 	}
 
 	/**
@@ -243,60 +195,51 @@ class WebView
 	}
 
 	/**
-		Returns the current page title reported by the backend.
-
-		@return The last known page title, or an empty string before a title is known.
+		Goes back to the previous page, if there is one.
 	**/
-	public function getTitle():String
+	public function goBack():Void
 	{
 		if (__backend != null)
 		{
-			var value = __backend.getTitle();
-			if (value != null)
-			{
-				__title = value;
-			}
-		}
-
-		return __title;
-	}
-
-	/**
-		Navigates backward in history when available.
-	**/
-	public function historyBack():Void
-	{
-		if (__backend != null)
-		{
-			__backend.historyBack();
+			__backend.goBack();
 		}
 	}
 
 	/**
-		Navigates forward in history when available.
+		Goes forward to the next page, if there is one.
 	**/
-	public function historyForward():Void
+	public function goForward():Void
 	{
 		if (__backend != null)
 		{
-			__backend.historyForward();
+			__backend.goForward();
 		}
 	}
 
 	/**
-		Loads an HTML string into the webview.
+		Goes to a URL.
 
-		Only `text/html` and `application/xhtml+xml` are currently supported.
+		@param url Destination URL. This may be an `https://` URL or a local
+			`file://` URL.
+	**/
+	public function load(url:String):Void
+	{
+		__url = url != null ? url : "";
+		__title = "";
 
-		@param text HTML or XHTML markup to render.
-		@param mimeType MIME type describing the provided markup.
-		@throws Dynamic Thrown when `mimeType` is not one of the supported HTML
-			values.
+		if (__backend != null)
+		{
+			__backend.load(url);
+		}
+	}
+
+	/**
+		Shows HTML as a page of its own.
 
 		## Example
 
 		```haxe
-		webView.loadString('
+		webView.loadHTML('
 			<!doctype html>
 			<html>
 				<body>
@@ -305,52 +248,22 @@ class WebView
 			</html>
 		');
 		```
-	**/
-	public function loadString(text:String, mimeType:String = "text/html"):Void
-	{
-		if (mimeType != "text/html" && mimeType != "application/xhtml+xml")
-		{
-			throw "WebView.loadString only supports text/html and application/xhtml+xml";
-		}
 
-		__location = "about:blank";
+		@param html HTML markup to render.
+	**/
+	public function loadHTML(html:String):Void
+	{
+		__url = "about:blank";
 		__title = "";
 
 		if (__backend != null)
 		{
-			__backend.setHtml(text);
+			__backend.loadHTML(html);
 		}
 	}
 
 	/**
-		Alias for `navigate()`.
-
-		@param url URL to load.
-	**/
-	public inline function loadURL(url:String):Void
-	{
-		navigate(url);
-	}
-
-	/**
-		Navigates the webview to a remote or local URL.
-
-		@param url Destination URL. This may be an `https://` URL or a local
-			`file://` URL.
-	**/
-	public function navigate(url:String):Void
-	{
-		__location = url != null ? url : "";
-		__title = "";
-
-		if (__backend != null)
-		{
-			__backend.navigate(url);
-		}
-	}
-
-	/**
-		Posts a message into the page when the backend supports messaging.
+		Sends a message to the page.
 
 		Use this together with JavaScript message listeners such as
 		`window.chrome.webview.addEventListener("message", ...)` on the page side.
@@ -366,32 +279,16 @@ class WebView
 	}
 
 	/**
-		Executes JavaScript in the active document.
-
-		Use this together with `postMessage()` when you want the page to send a
-		result back through the normal webview messaging channel.
-
-		@param script JavaScript source to execute in the current page.
-	**/
-	public function evaluateJavaScript(script:String):Void
-	{
-		if (__backend != null)
-		{
-			__backend.evaluateJavaScript(script);
-		}
-	}
-
-	/**
 		Saves the loaded page as a PDF file.
 
 		Printing uses the platform's own print engine: WebView2 `PrintToPdf` on
 		Windows, a WebKitGTK print operation on Linux, the WebKit print path on
 		macOS and iOS, and `PrintDocumentAdapter` on Android. It works for a
-		webview created with `startHidden`, so no window has to be visible.
+		webview created with `hidden`, so no window has to be visible.
 
 		The callback runs from the event loop on the thread that calls
 		`processEvents()`, never from inside the engine's own handler, so it may
-		dispose this webview or create another. On Windows, macOS and iOS the
+		close this webview or create another. On Windows, macOS and iOS the
 		host's normal event loop also delivers it.
 
 		@param path Destination file. Relative paths resolve against the current
@@ -401,13 +298,13 @@ class WebView
 		@param onComplete Receives `true` and `null` on success, or `false` and an
 			error message.
 	**/
-	public function printToPDF(path:String, ?options:PdfOptions, ?onComplete:(success:Bool, error:String)->Void):Void
+	public function printToPDF(path:String, ?options:PDFOptions, ?onComplete:(success:Bool, error:String)->Void):Void
 	{
 		if (__backend == null)
 		{
 			if (onComplete != null)
 			{
-				onComplete(false, "The webview has been disposed");
+				onComplete(false, "The webview has closed");
 			}
 
 			return;
@@ -434,17 +331,28 @@ class WebView
 			options = {};
 		}
 
-		__backend.printToPDF(path, options, onComplete);
+		__backend.printToPDF(path, {
+			landscape: options.landscape == true,
+			marginBottom: options.marginBottom != null ? options.marginBottom : 0.4,
+			marginLeft: options.marginLeft != null ? options.marginLeft : 0.4,
+			marginRight: options.marginRight != null ? options.marginRight : 0.4,
+			marginTop: options.marginTop != null ? options.marginTop : 0.4,
+			pageHeight: options.pageHeight != null ? options.pageHeight : 11,
+			pageWidth: options.pageWidth != null ? options.pageWidth : 8.5,
+			printBackground: options.printBackground != false,
+			repeatTableHeaders: options.repeatTableHeaders != false,
+			scale: options.scale != null ? options.scale : 1
+		}, onComplete);
 	}
 
 	/**
 		Runs pending native webview work without blocking.
 
-		Linux (GTK) and Android deliver page events, messages and `printToPDF()`
-		results only when this is called, so call it once per frame from your
-		main loop. The OpenFL `StageWebView` facade does this for you. On Windows,
-		macOS and iOS the host's event loop already does the same work and this
-		call is optional.
+		Linux (GTK) and Android deliver page events, messages, script values and
+		`printToPDF()` results only when this is called, so call it once per frame
+		from your main loop. The OpenFL `StageWebView` facade does this for you. On
+		Windows, macOS and iOS the host's event loop already does the same work and
+		this call is optional.
 
 		@return The number of native events handled.
 	**/
@@ -458,7 +366,7 @@ class WebView
 	}
 
 	/**
-		Reloads the current page.
+		Loads the current page again.
 	**/
 	public function reload():Void
 	{
@@ -469,10 +377,38 @@ class WebView
 	}
 
 	/**
-		Runs the native event loop for a top-level owned window.
+		Resizes the webview.
 
-		Call this after `new WebView()` when the webview created its own window and
-		should stay alive until the user closes it.
+		A webview in its own window resizes the window. One embedded in a host window
+		fills what it is given: the host moves and sizes the native widget, and this
+		tells the engine.
+
+		@param width New width in pixels.
+		@param height New height in pixels.
+		@param hints How the size applies to a webview's own window.
+	**/
+	public function resize(width:Int, height:Int, hints:WebViewHint = WebViewHint.NONE):Void
+	{
+		if (__backend == null)
+		{
+			return;
+		}
+
+		if (__embedded)
+		{
+			__backend.setBounds(width, height);
+		}
+		else
+		{
+			__backend.setSize(width, height, hints);
+		}
+	}
+
+	/**
+		Runs the native event loop for a webview in its own window.
+
+		Call this after `new WebView()` when the webview should stay alive until the
+		user closes its window.
 	**/
 	public function run():Void
 	{
@@ -483,62 +419,20 @@ class WebView
 	}
 
 	/**
-		Alias for `loadString()`.
-
-		@param html HTML markup to render.
-	**/
-	public inline function setHtml(html:String):Void
-	{
-		loadString(html);
-	}
-
-	/**
-		Applies a viewport-sized native bounds update when supported.
-
-		This is primarily useful when the host framework manages native child window
-		bounds separately from overall view sizing.
-
-		@param width New width in pixels.
-		@param height New height in pixels.
-	**/
-	public function setBounds(width:Int, height:Int):Void
-	{
-		if (__backend != null)
-		{
-			__backend.setBounds(width, height);
-		}
-	}
-
-	/**
-		Requests a backend resize using the provided sizing hint.
-
-		@param width Requested width in pixels.
-		@param height Requested height in pixels.
-		@param hints Optional sizing hint for the backend.
-	**/
-	public function setSize(width:Int, height:Int, hints:WebViewHint = WebViewHint.NONE):Void
-	{
-		if (__backend != null)
-		{
-			__backend.setSize(width, height, hints);
-		}
-	}
-
-	/**
-		Sets the native window title when the backend owns a top-level window.
+		Sets the title of a webview's own window.
 
 		@param title Text to show in the native title bar.
 	**/
-	public function setTitle(title:String):Void
+	public function setWindowTitle(title:String):Void
 	{
 		if (__backend != null)
 		{
-			__backend.setTitle(title);
+			__backend.setWindowTitle(title);
 		}
 	}
 
 	/**
-		Stops the current navigation or load operation.
+		Stops loading the current page.
 	**/
 	public function stop():Void
 	{
@@ -549,7 +443,7 @@ class WebView
 	}
 
 	/**
-		Requests the top-level owned window to close its run loop.
+		Asks the event loop of a webview's own window to end.
 	**/
 	public function terminate():Void
 	{
@@ -574,23 +468,13 @@ class WebView
 			return;
 		}
 
-		__backend.onLocationChanging = __handleLocationChanging;
-		__backend.onLocationChange = __handleLocationChange;
-		__backend.onComplete = __handleComplete;
 		__backend.onError = __handleError;
 		__backend.onFocusIn = __handleFocusIn;
 		__backend.onFocusOut = __handleFocusOut;
+		__backend.onLoad = __handleLoad;
 		__backend.onMessage = __handleMessage;
-	}
-
-	private function __handleComplete():Void
-	{
-		__title = getTitle();
-
-		if (onComplete != null)
-		{
-			onComplete();
-		}
+		__backend.onNavigate = __handleNavigate;
+		__backend.onURLChange = __handleURLChange;
 	}
 
 	private function __handleError(message:String):Void
@@ -617,20 +501,14 @@ class WebView
 		}
 	}
 
-	private function __handleLocationChange(location:String):Void
+	private function __handleLoad():Void
 	{
-		__location = (location != null && location != "") ? location : (__location != "" ? __location : "about:blank");
-		__title = getTitle();
+		__title = title;
 
-		if (onLocationChange != null)
+		if (onLoad != null)
 		{
-			onLocationChange(__location);
+			onLoad();
 		}
-	}
-
-	private function __handleLocationChanging(location:String):Bool
-	{
-		return onLocationChanging != null ? onLocationChanging(location) : false;
 	}
 
 	private function __handleMessage(message:String):Void
@@ -641,30 +519,20 @@ class WebView
 		}
 	}
 
-	private function __cloneOptions(options:Dynamic):WebViewOptions
+	private function __handleNavigate(url:String):Bool
 	{
-		var copy = new WebViewOptions();
-
-		if (options == null)
-		{
-			return copy;
-		}
-
-		copy.debug = __readOption(options, "debug");
-		copy.mediaPlaybackRequiresUserAction = __readOption(options, "mediaPlaybackRequiresUserAction");
-		copy.userAgent = __readOption(options, "userAgent");
-		copy.enableContextMenu = __readOption(options, "enableContextMenu");
-		copy.enableKeyboardShortcuts = __readOption(options, "enableKeyboardShortcuts");
-		copy.enableDevTools = __readOption(options, "enableDevTools");
-		copy.enableStatusBar = __readOption(options, "enableStatusBar");
-		copy.enableZoom = __readOption(options, "enableZoom");
-		copy.startHidden = __readOption(options, "startHidden");
-		return copy;
+		return onNavigate != null ? onNavigate(url) : false;
 	}
 
-	private function __readOption(source:Dynamic, field:String):Dynamic
+	private function __handleURLChange(url:String):Void
 	{
-		return Reflect.isObject(source) && Reflect.hasField(source, field) ? Reflect.field(source, field) : null;
+		__url = (url != null && url != "") ? url : (__url != "" ? __url : "about:blank");
+		__title = title;
+
+		if (onURLChange != null)
+		{
+			onURLChange(__url);
+		}
 	}
 
 	private static function __createBackend(options:WebViewOptions, window:WebViewHandle):IWebViewBackend
@@ -686,19 +554,19 @@ class WebView
 		__backendFactory = factory != null ? factory : __createBackend;
 	}
 
+	private function get_canGoBack():Bool
+	{
+		return __backend != null ? __backend.canGoBack() : false;
+	}
+
+	private function get_canGoForward():Bool
+	{
+		return __backend != null ? __backend.canGoForward() : false;
+	}
+
 	private inline function get_handle():WebViewHandle
 	{
 		return __backend != null ? __backend.handle : null;
-	}
-
-	private inline function get_isHistoryBackEnabled():Bool
-	{
-		return canGoBack();
-	}
-
-	private inline function get_isHistoryForwardEnabled():Bool
-	{
-		return canGoForward();
 	}
 
 	private static function get_isSupported():Bool
@@ -712,29 +580,31 @@ class WebView
 		#end
 	}
 
-	private inline function get_location():String
+	private function get_title():String
 	{
-		return getLocation();
-	}
-
-	private inline function get_mediaPlaybackRequiresUserAction():Bool
-	{
-		return __options != null && __options.mediaPlaybackRequiresUserAction != null ? __options.mediaPlaybackRequiresUserAction : true;
-	}
-
-	private inline function get_title():String
-	{
-		return getTitle();
-	}
-
-	private inline function set_mediaPlaybackRequiresUserAction(value:Bool):Bool
-	{
-		if (__options == null)
+		if (__backend != null)
 		{
-			__options = new WebViewOptions();
+			var value = __backend.getTitle();
+			if (value != null)
+			{
+				__title = value;
+			}
 		}
 
-		__options.mediaPlaybackRequiresUserAction = value;
-		return value;
+		return __title;
+	}
+
+	private function get_url():String
+	{
+		if (__backend != null)
+		{
+			var value = __backend.getURL();
+			if (value != null && value != "")
+			{
+				__url = value;
+			}
+		}
+
+		return __url;
 	}
 }

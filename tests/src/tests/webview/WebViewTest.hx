@@ -1,6 +1,5 @@
 package tests.webview;
 
-import tests.TestTools;
 import utest.Assert;
 import utest.Test;
 import webview.NativeHandleKind;
@@ -28,7 +27,7 @@ class WebViewTest extends Test
 			var lastLocation:String = null;
 			var lastMessage:String = null;
 
-			webView.onComplete = function ():Void
+			webView.onLoad = function ():Void
 			{
 				completed = true;
 			};
@@ -48,12 +47,12 @@ class WebViewTest extends Test
 				focusEvents.push("out");
 			};
 
-			webView.onLocationChange = function (location:String):Void
+			webView.onURLChange = function (location:String):Void
 			{
 				lastLocation = location;
 			};
 
-			webView.onLocationChanging = function (location:String):Bool
+			webView.onNavigate = function (location:String):Bool
 			{
 				return location.indexOf("blocked") != -1;
 			};
@@ -76,7 +75,7 @@ class WebViewTest extends Test
 			backend.title = "Haxe Title";
 			backend.emitComplete();
 
-			Assert.equals("https://haxe.org", webView.location);
+			Assert.equals("https://haxe.org", webView.url);
 			Assert.equals("Haxe Title", webView.title);
 			Assert.equals("https://haxe.org", lastLocation);
 			Assert.equals("bridge-party", lastMessage);
@@ -93,22 +92,21 @@ class WebViewTest extends Test
 
 		__withWebView(function (webView:WebView, backend:FakeBackend):Void
 		{
-			Assert.isTrue(backend.createdWithDebug);
 			Assert.equals(windowHandle, backend.createdWithWindow);
-			Assert.isFalse(webView.mediaPlaybackRequiresUserAction);
+			Assert.isTrue(backend.createdWithOptions.devTools);
 			Assert.equals("StageWebView demo", backend.createdWithOptions.userAgent);
-			Assert.isFalse(backend.createdWithOptions.mediaPlaybackRequiresUserAction);
-			Assert.isFalse(backend.createdWithOptions.enableContextMenu);
+			Assert.isTrue(backend.createdWithOptions.autoplay);
+			Assert.isFalse(backend.createdWithOptions.contextMenu);
 			Assert.equals("fake-handle", cast webView.handle);
-		}, {debug: true, userAgent: "StageWebView demo", mediaPlaybackRequiresUserAction: false, enableContextMenu: false}, windowHandle);
+		}, {devTools: true, userAgent: "StageWebView demo", autoplay: true, contextMenu: false}, windowHandle);
 	}
 
-	public function testStartHiddenReachesBackend():Void
+	public function testHiddenReachesBackend():Void
 	{
 		__withWebView(function (webView:WebView, backend:FakeBackend):Void
 		{
-			Assert.isTrue(backend.createdWithOptions.startHidden);
-		}, {startHidden: true});
+			Assert.isTrue(backend.createdWithOptions.hidden);
+		}, {hidden: true});
 	}
 
 	public function testPrintToPDFUsesDefaultsAndReportsResult():Void
@@ -143,7 +141,7 @@ class WebViewTest extends Test
 			Assert.equals(8.27, backend.lastPdfOptions.pageWidth);
 			Assert.equals(0.4, backend.lastPdfOptions.marginTop);
 
-			webView.dispose();
+			webView.close();
 			var disposedMessage:String = null;
 			webView.printToPDF("report.pdf", null, function (success:Bool, error:String):Void
 			{
@@ -153,38 +151,32 @@ class WebViewTest extends Test
 		});
 	}
 
-	public function testDisposeAndDestroyAreSafe():Void
+	public function testCloseIsSafe():Void
 	{
 		__withWebView(function (webView:WebView, backend:FakeBackend):Void
 		{
 			Assert.notNull(webView.handle);
 
-			webView.dispose();
+			webView.close();
 
 			Assert.isTrue(backend.destroyed);
 			Assert.isNull(webView.handle);
-			Assert.isFalse(webView.canGoBack());
-			Assert.isFalse(webView.canGoForward());
+			Assert.isFalse(webView.canGoBack);
+			Assert.isFalse(webView.canGoForward);
 
-			webView.dispose();
-			webView.destroy();
+			webView.close();
 		});
 	}
 
-	public function testLoadStringValidatesMimeAndCachesBlankLocation():Void
+	public function testLoadHTMLCachesABlankURL():Void
 	{
 		__withWebView(function (webView:WebView, backend:FakeBackend):Void
 		{
-			webView.loadString("<h1>Bridge Party</h1>");
+			webView.loadHTML("<h1>Bridge Party</h1>");
 
 			Assert.equals("<h1>Bridge Party</h1>", backend.lastHtml);
-			Assert.equals("about:blank", webView.location);
+			Assert.equals("about:blank", webView.url);
 			Assert.equals("", webView.title);
-
-			TestTools.throwsContaining(function ():Void
-			{
-				webView.loadString("<p>Plain text no thank you</p>", "text/plain");
-			}, "text/html");
 		});
 	}
 
@@ -196,35 +188,43 @@ class WebViewTest extends Test
 			backend.canGoForwardValue = true;
 			backend.registerNativeHandle(NativeHandleKind.UI_WIDGET, cast "widget-handle");
 
-			webView.loadURL("https://openfl.org");
+			webView.load("https://openfl.org");
 			webView.postMessage("hello from haxe");
-			webView.assignFocus(7);
-			webView.setSize(1280, 720, WebViewHint.FIXED);
-			webView.setBounds(900, 540);
-			webView.historyBack();
-			webView.historyForward();
+			webView.focus(7);
+			webView.resize(1280, 720, WebViewHint.FIXED);
+			webView.goBack();
+			webView.goForward();
 			webView.reload();
 			webView.stop();
 
 			Assert.equals("https://openfl.org", backend.lastNavigate);
-			Assert.equals("https://openfl.org", webView.location);
+			Assert.equals("https://openfl.org", webView.url);
 			Assert.equals("hello from haxe", backend.lastMessage);
 			Assert.equals(7, backend.lastFocusDirection);
 			Assert.equals(1280, backend.lastSizeWidth);
 			Assert.equals(720, backend.lastSizeHeight);
 			Assert.equals(WebViewHint.FIXED, backend.lastSizeHints);
-			Assert.equals(900, backend.lastBoundsWidth);
-			Assert.equals(540, backend.lastBoundsHeight);
+			Assert.equals(0, backend.lastBoundsWidth);
 			Assert.equals(1, backend.historyBackCount);
 			Assert.equals(1, backend.historyForwardCount);
 			Assert.equals(1, backend.reloadCount);
 			Assert.equals(1, backend.stopCount);
-			Assert.isTrue(webView.canGoBack());
-			Assert.isTrue(webView.canGoForward());
-			Assert.isTrue(webView.isHistoryBackEnabled);
-			Assert.isTrue(webView.isHistoryForwardEnabled);
+			Assert.isTrue(webView.canGoBack);
+			Assert.isTrue(webView.canGoForward);
 			Assert.equals("widget-handle", cast webView.getNativeHandle(NativeHandleKind.UI_WIDGET));
 		});
+	}
+
+	public function testAnEmbeddedWebViewResizesItsContent():Void
+	{
+		__withWebView(function (webView:WebView, backend:FakeBackend):Void
+		{
+			webView.resize(900, 540);
+
+			Assert.equals(900, backend.lastBoundsWidth);
+			Assert.equals(540, backend.lastBoundsHeight);
+			Assert.equals(0, backend.lastSizeWidth);
+		}, null, cast "host-window");
 	}
 
 	public function testScriptsDelegateToBackend():Void
@@ -237,7 +237,7 @@ class WebViewTest extends Test
 			Assert.same(["window.a = 1;"], backend.initScripts);
 			Assert.same(["window.b = 2;"], backend.evaluatedScripts);
 
-			webView.dispose();
+			webView.close();
 			webView.addInitScript("ignored");
 			webView.evaluateJavaScript("ignored");
 			Assert.equals(1, backend.initScripts.length);
@@ -245,11 +245,33 @@ class WebViewTest extends Test
 		});
 	}
 
+	public function testAScriptReportsItsValue():Void
+	{
+		__withWebView(function (webView:WebView, backend:FakeBackend):Void
+		{
+			var results:Array<String> = [];
+			var report = function (success:Bool, result:String):Void results.push(success + ":" + result);
+
+			backend.scriptResult = {success: true, result: "42"};
+			webView.evaluateJavaScript("6 * 7", report);
+
+			backend.scriptResult = {success: false, result: "Boom"};
+			webView.evaluateJavaScript("throw 'Boom'", report);
+
+			webView.close();
+			webView.evaluateJavaScript("ignored", report);
+
+			Assert.equals("true:42", results[0]);
+			Assert.equals("false:Boom", results[1]);
+			Assert.equals("false:The webview has closed", results[2]);
+		});
+	}
+
 	public function testTopLevelWindowControlsDelegateToBackend():Void
 	{
 		__withWebView(function (webView:WebView, backend:FakeBackend):Void
 		{
-			webView.setTitle("Solo Deck");
+			webView.setWindowTitle("Solo Deck");
 			webView.run();
 			webView.terminate();
 
@@ -259,7 +281,7 @@ class WebViewTest extends Test
 		});
 	}
 
-	private function __withWebView(run:WebView->FakeBackend->Void, ?options:Dynamic, ?window:WebViewHandle):Void
+	private function __withWebView(run:WebView->FakeBackend->Void, ?options:webview.WebViewOptions, ?window:WebViewHandle):Void
 	{
 		var backend = new FakeBackend();
 		var error:Dynamic = null;
@@ -269,7 +291,6 @@ class WebViewTest extends Test
 			WebView.__setBackendFactory(function (backendOptions:webview.WebViewOptions, backendWindow:WebViewHandle)
 			{
 				backend.createdWithOptions = backendOptions;
-				backend.createdWithDebug = backendOptions != null && backendOptions.debug == true;
 				backend.createdWithWindow = backendWindow;
 				return backend;
 			});

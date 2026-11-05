@@ -4,7 +4,7 @@ package webview._internal.android;
 import webview._internal.IWebViewBackend;
 import haxe.Json;
 import webview.NativeHandleKind;
-import webview.PdfOptions;
+import webview.PDFOptions;
 import webview.WebViewHandle;
 import webview.WebViewHint;
 import webview.WebViewOptions;
@@ -20,21 +20,20 @@ import webview.WebViewOptions;
 @:noCompletion
 class AndroidWebViewBackend implements IWebViewBackend
 {
-	private static inline final RECORD_SEPARATOR:String = "\x1E";
 	private static inline final FIELD_SEPARATOR:String = "\x1F";
 	private static inline final PART_SEPARATOR:String = "\x1D";
 
 	private static var __views:Map<Int, AndroidWebViewBackend> = new Map();
-	private static var __pdfCallbacks:Map<Int, Bool->String->Void> = new Map();
-	private static var __nextPdfToken:Int = 1;
+	private static var __resultCallbacks:Map<Int, Bool->String->Void> = new Map();
+	private static var __nextResultToken:Int = 1;
 
 	public var handle(get, never):WebViewHandle;
-	public var onComplete:Void->Void;
+	public var onLoad:Void->Void;
 	public var onError:String->Void;
 	public var onFocusIn:Void->Void;
 	public var onFocusOut:Void->Void;
-	public var onLocationChange:String->Void;
-	public var onLocationChanging:String->Bool;
+	public var onURLChange:String->Void;
+	public var onNavigate:String->Bool;
 	public var onMessage:String->Void;
 
 	private var __id:Int = -1;
@@ -42,19 +41,19 @@ class AndroidWebViewBackend implements IWebViewBackend
 
 	public function new(?window:WebViewHandle, ?options:WebViewOptions)
 	{
-		var config = options != null ? options : new WebViewOptions();
+		var config:WebViewOptions = options != null ? options : {};
 		var container:Int = window != null ? Std.int(window) : -1;
 
 		// Android has no top-level windows; a visible webview without a host fills the activity.
-		if (window == null && config.startHidden != true)
+		if (window == null && config.hidden != true)
 		{
 			__ownedContainer = AndroidHost.createContainer(0, 0, -1, -1);
 			AndroidHost.setContainerVisible(__ownedContainer, true);
 			container = __ownedContainer;
 		}
 
-		var mediaRequiresGesture = config.mediaPlaybackRequiresUserAction == null ? -1 : (config.mediaPlaybackRequiresUserAction ? 1 : 0);
-		__id = AndroidHost.create(container, config.debug == true || config.enableDevTools == true, config.userAgent, mediaRequiresGesture, null);
+		var mediaRequiresGesture = config.autoplay == null ? -1 : (config.autoplay ? 0 : 1);
+		__id = AndroidHost.create(container, config.devTools == true, config.userAgent, mediaRequiresGesture, null);
 		if (__id <= 0)
 		{
 			throw "Failed to create a WebView";
@@ -66,15 +65,13 @@ class AndroidWebViewBackend implements IWebViewBackend
 
 	public static function processEvents():Int
 	{
-		var events = AndroidHost.pollEvents();
-		if (events == null || events == "")
-		{
-			return 0;
-		}
+		var count = 0;
+		var record:String;
 
-		var records = events.split(RECORD_SEPARATOR);
-		for (record in records)
+		while ((record = AndroidHost.pollEvent()) != null)
 		{
+			count++;
+
 			var first = record.indexOf(FIELD_SEPARATOR);
 			var second = first >= 0 ? record.indexOf(FIELD_SEPARATOR, first + 1) : -1;
 			if (second < 0)
@@ -86,9 +83,9 @@ class AndroidWebViewBackend implements IWebViewBackend
 			var type = record.substring(first + 1, second);
 			var payload = record.substring(second + 1);
 
-			if (type == "pdf")
+			if (type == "pdf" || type == "script")
 			{
-				__dispatchPdf(payload);
+				__dispatchResult(payload);
 				continue;
 			}
 
@@ -99,7 +96,7 @@ class AndroidWebViewBackend implements IWebViewBackend
 			}
 		}
 
-		return records.length;
+		return count;
 	}
 
 	public function addInitScript(script:String):Void
@@ -110,7 +107,7 @@ class AndroidWebViewBackend implements IWebViewBackend
 		}
 	}
 
-	public function assignFocus(direction:Int):Void
+	public function focus(direction:Int):Void
 	{
 		if (__id > 0)
 		{
@@ -133,7 +130,7 @@ class AndroidWebViewBackend implements IWebViewBackend
 		return __id > 0 ? AndroidHost.capture(__id, format) : null;
 	}
 
-	public function destroy():Void
+	public function close():Void
 	{
 		if (__id <= 0)
 		{
@@ -151,15 +148,28 @@ class AndroidWebViewBackend implements IWebViewBackend
 		}
 	}
 
-	public function evaluateJavaScript(script:String):Void
+	public function evaluateJavaScript(script:String, onComplete:Bool->String->Void):Void
 	{
-		if (__id > 0)
+		if (__id <= 0)
+		{
+			if (onComplete != null)
+			{
+				onComplete(false, "The webview has closed");
+			}
+		}
+		else if (onComplete == null)
 		{
 			AndroidHost.evaluate(__id, script);
 		}
+		else
+		{
+			var token = __nextResultToken++;
+			__resultCallbacks.set(token, onComplete);
+			AndroidHost.evaluateWithResult(__id, token, script);
+		}
 	}
 
-	public function getLocation():String
+	public function getURL():String
 	{
 		return __id > 0 ? AndroidHost.getLocation(__id) : null;
 	}
@@ -174,7 +184,7 @@ class AndroidWebViewBackend implements IWebViewBackend
 		return __id > 0 ? AndroidHost.getTitle(__id) : null;
 	}
 
-	public function historyBack():Void
+	public function goBack():Void
 	{
 		if (__id > 0)
 		{
@@ -182,7 +192,7 @@ class AndroidWebViewBackend implements IWebViewBackend
 		}
 	}
 
-	public function historyForward():Void
+	public function goForward():Void
 	{
 		if (__id > 0)
 		{
@@ -190,9 +200,10 @@ class AndroidWebViewBackend implements IWebViewBackend
 		}
 	}
 
-	public function navigate(url:String):Void
+	public function load(url:String):Void
 	{
-		if (__id > 0)
+		// The engine only asks about the navigations a page starts
+		if (__id > 0 && (onNavigate == null || !onNavigate(url)) && __id > 0)
 		{
 			AndroidHost.loadUrl(__id, url != null && url != "" ? url : "about:blank");
 		}
@@ -201,24 +212,24 @@ class AndroidWebViewBackend implements IWebViewBackend
 	public function postMessage(message:String):Void
 	{
 		evaluateJavaScript("window.chrome && window.chrome.webview && window.chrome.webview.__stagewebviewDispatch && window.chrome.webview.__stagewebviewDispatch("
-			+ Json.stringify(message != null ? message : "") + ");");
+			+ Json.stringify(message != null ? message : "") + ");", null);
 	}
 
-	public function printToPDF(path:String, options:PdfOptions, onComplete:Bool->String->Void):Void
+	public function printToPDF(path:String, options:PDFOptions, onComplete:Bool->String->Void):Void
 	{
 		if (__id <= 0)
 		{
 			if (onComplete != null)
 			{
-				onComplete(false, "The webview has been disposed");
+				onComplete(false, "The webview has closed");
 			}
 
 			return;
 		}
 
 		// Chromium repeats <thead> on its own; scale and background printing are not exposed by PrintAttributes.
-		var token = __nextPdfToken++;
-		__pdfCallbacks.set(token, onComplete);
+		var token = __nextResultToken++;
+		__resultCallbacks.set(token, onComplete);
 		AndroidHost.printToPdf(__id, token, path, options.pageWidth, options.pageHeight, options.marginTop, options.marginRight, options.marginBottom,
 			options.marginLeft, options.landscape);
 	}
@@ -235,7 +246,7 @@ class AndroidWebViewBackend implements IWebViewBackend
 
 	public function setBounds(width:Int, height:Int):Void {}
 
-	public function setHtml(html:String):Void
+	public function loadHTML(html:String):Void
 	{
 		if (__id > 0)
 		{
@@ -245,7 +256,7 @@ class AndroidWebViewBackend implements IWebViewBackend
 
 	public function setSize(width:Int, height:Int, hints:WebViewHint = WebViewHint.NONE):Void {}
 
-	public function setTitle(title:String):Void {}
+	public function setWindowTitle(title:String):Void {}
 
 	public function stop():Void
 	{
@@ -265,10 +276,10 @@ class AndroidWebViewBackend implements IWebViewBackend
 				if (onMessage != null) onMessage(payload);
 
 			case "location":
-				if (onLocationChange != null) onLocationChange(payload);
+				if (onURLChange != null) onURLChange(payload);
 
 			case "complete":
-				if (onComplete != null) onComplete();
+				if (onLoad != null) onLoad();
 
 			case "error":
 				if (onError != null) onError(payload);
@@ -282,7 +293,7 @@ class AndroidWebViewBackend implements IWebViewBackend
 			case "changing":
 				var separator = payload.indexOf(PART_SEPARATOR);
 				var token = Std.parseInt(payload.substring(0, separator));
-				var cancel = onLocationChanging != null ? onLocationChanging(payload.substring(separator + 1)) : false;
+				var cancel = onNavigate != null ? onNavigate(payload.substring(separator + 1)) : false;
 				if (token != null && token > 0)
 				{
 					AndroidHost.resolveNavigation(token, cancel);
@@ -292,17 +303,17 @@ class AndroidWebViewBackend implements IWebViewBackend
 		}
 	}
 
-	private static function __dispatchPdf(payload:String):Void
+	private static function __dispatchResult(payload:String):Void
 	{
 		var parts = payload.split(PART_SEPARATOR);
 		var token = Std.parseInt(parts[0]);
-		var callback = __pdfCallbacks.get(token);
-		__pdfCallbacks.remove(token);
+		var callback = __resultCallbacks.get(token);
+		__resultCallbacks.remove(token);
 
 		if (callback != null)
 		{
-			var success = parts.length > 1 && parts[1] == "1";
-			callback(success, success ? null : (parts.length > 2 ? parts.slice(2).join(PART_SEPARATOR) : "Printing failed"));
+			var message = parts.slice(2).join(PART_SEPARATOR);
+			callback(parts[1] == "1", message != "" ? message : null);
 		}
 	}
 

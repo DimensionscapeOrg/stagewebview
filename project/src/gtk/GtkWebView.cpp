@@ -26,11 +26,20 @@ struct GtkPdfRequest
 	GtkPlatformWebView *owner = nullptr;
 	std::string uri;
 	WebViewPdfOptions options;
-	WebViewPdfCallback callback = nullptr;
+	WebViewResultCallback callback = nullptr;
 	void *userData = nullptr;
 	bool tablesSplit = false;
 	bool failed = false;
 	std::string error;
+};
+
+// One evaluateJavaScript request that reports back.
+struct GtkScriptRequest
+{
+	WebViewResultCallback callback = nullptr;
+	void *userData = nullptr;
+	bool success = false;
+	std::string message;
 };
 
 class GtkPlatformWebView : public PlatformWebView
@@ -91,6 +100,7 @@ public:
 
 	int setHtml(const char *html) override
 	{
+		loadingHtml = true;
 		return static_cast<int>(webview_set_html(handle, html != nullptr ? html : ""));
 	}
 
@@ -99,9 +109,18 @@ public:
 		return static_cast<int>(webview_init(handle, script));
 	}
 
-	int evaluateJavaScript(const char *script) override
+	int evaluateJavaScript(const char *script, WebViewResultCallback callback, void *userData) override
 	{
-		return static_cast<int>(webview_eval(handle, script));
+		if (callback == nullptr)
+		{
+			return static_cast<int>(webview_eval(handle, script));
+		}
+
+		auto *request = new GtkScriptRequest();
+		request->callback = callback;
+		request->userData = userData;
+		evaluate(script, onScriptFinished, request);
+		return 0;
 	}
 
 	int historyBack() override
@@ -239,7 +258,7 @@ public:
 		return webview_get_native_handle(handle, static_cast<webview_native_handle_kind_t>(kind));
 	}
 
-	int printToPdf(const char *path, const WebViewPdfOptions &options, WebViewPdfCallback callback, void *userData) override
+	int printToPdf(const char *path, const WebViewPdfOptions &options, WebViewResultCallback callback, void *userData) override
 	{
 		gchar *absolutePath = g_canonicalize_filename(path, nullptr);
 		gchar *uri = g_filename_to_uri(absolutePath, nullptr, nullptr);
@@ -281,6 +300,50 @@ private:
 #else
 		webkit_web_view_run_javascript(view, script.c_str(), nullptr, done, data);
 #endif
+	}
+
+	static void onScriptFinished(GObject *source, GAsyncResult *result, gpointer data)
+	{
+		auto *request = static_cast<GtkScriptRequest *>(data);
+		GError *error = nullptr;
+
+#if (WEBKIT_MAJOR_VERSION == 2 && WEBKIT_MINOR_VERSION >= 40) || WEBKIT_MAJOR_VERSION > 2
+		JSCValue *value = webkit_web_view_evaluate_javascript_finish(WEBKIT_WEB_VIEW(source), result, &error);
+#else
+		WebKitJavascriptResult *finished = webkit_web_view_run_javascript_finish(WEBKIT_WEB_VIEW(source), result, &error);
+		JSCValue *value = finished != nullptr ? JSC_VALUE(g_object_ref(webkit_javascript_result_get_js_value(finished))) : nullptr;
+		if (finished != nullptr)
+		{
+			webkit_javascript_result_unref(finished);
+		}
+#endif
+
+		if (value != nullptr)
+		{
+			gchar *json = jsc_value_to_json(value, 0);
+			request->success = true;
+			request->message = json != nullptr ? json : "null";
+			g_free(json);
+			g_object_unref(value);
+		}
+		else
+		{
+			request->message = error != nullptr && error->message != nullptr ? error->message : "The script failed";
+		}
+
+		if (error != nullptr)
+		{
+			g_error_free(error);
+		}
+
+		// Report from an idle callback, outside WebKit's own, so the callback may dispose this webview or create another.
+		g_idle_add(+[](gpointer data) -> gboolean
+		{
+			auto *done = static_cast<GtkScriptRequest *>(data);
+			done->callback(done->userData, done->success, done->message);
+			delete done;
+			return G_SOURCE_REMOVE;
+		}, request);
 	}
 
 	void startPrint(GtkPdfRequest *request)

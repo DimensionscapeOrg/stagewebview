@@ -2,7 +2,6 @@ import haxe.Json;
 import haxe.io.Path;
 import sys.FileSystem;
 import webview.WebView;
-import webview.WebViewHint;
 
 private typedef WindowPreset =
 {
@@ -49,25 +48,24 @@ class Main
 		}
 
 		__webView = new WebView(null, {
-			debug: true,
-			enableDevTools: true,
-			enableContextMenu: true,
-			enableKeyboardShortcuts: true,
-			enableZoom: true,
+			devTools: true,
+			contextMenu: true,
+			keyboardShortcuts: true,
+			zoom: true,
 			userAgent: "StageWebView Solo Deck"
 		});
 
-		__webView.onComplete = __onComplete;
+		__webView.onLoad = __onComplete;
 		__webView.onError = __onError;
-		__webView.onLocationChange = __onLocationChange;
-		__webView.onLocationChanging = __onLocationChanging;
+		__webView.onURLChange = __onLocationChange;
+		__webView.onNavigate = __onLocationChanging;
 		__webView.onMessage = __onMessage;
 
 		__applyWindowPreset(0, false);
-		__webView.setTitle(WINDOW_TITLE);
+		__webView.setWindowTitle(WINDOW_TITLE);
 		__loadHome("Window online. The solo deck is warming its thrusters.");
 		__webView.run();
-		__webView.dispose();
+		__webView.close();
 	}
 
 	private static function __applyWindowPreset(index:Int, announce:Bool = true):Void
@@ -75,8 +73,8 @@ class Main
 		__sizeIndex = (index + __windowPresets.length) % __windowPresets.length;
 
 		var preset = __windowPresets[__sizeIndex];
-		__webView.setSize(preset.width, preset.height, WebViewHint.NONE);
-		__webView.setTitle(WINDOW_TITLE + " - " + preset.label);
+		__webView.resize(preset.width, preset.height);
+		__webView.setWindowTitle(WINDOW_TITLE + " - " + preset.label);
 
 		if (announce)
 		{
@@ -265,22 +263,22 @@ class Main
 	private static function __loadHome(?status:String):Void
 	{
 		__currentPage = "home";
-		__webView.setTitle(WINDOW_TITLE + " - " + __windowPresets[__sizeIndex].label);
-		__webView.loadString(__homeHtml(status));
+		__webView.setWindowTitle(WINDOW_TITLE + " - " + __windowPresets[__sizeIndex].label);
+		__webView.loadHTML(__homeHtml(status));
 	}
 
 	private static function __loadStoryPage():Void
 	{
 		__currentPage = "story";
-		__webView.setTitle(WINDOW_TITLE + " - Afterglow");
-		__webView.loadString(__storyHtml());
+		__webView.setWindowTitle(WINDOW_TITLE + " - Afterglow");
+		__webView.loadHTML(__storyHtml());
 	}
 
 	private static function __navigateTo(url:String, ?label:String):Void
 	{
 		__currentPage = "remote";
-		__webView.setTitle(label != null && label != "" ? WINDOW_TITLE + " - " + label : WINDOW_TITLE + " - Wild tab");
-		__webView.navigate(url);
+		__webView.setWindowTitle(label != null && label != "" ? WINDOW_TITLE + " - " + label : WINDOW_TITLE + " - Wild tab");
+		__webView.load(url);
 	}
 
 	private static function __onComplete():Void
@@ -293,9 +291,9 @@ class Main
 		}
 
 		var title = __webView.title;
-		var host = __hostFromUrl(__webView.location);
+		var host = __hostFromUrl(__webView.url);
 		var label = title != null && title != "" ? title : host;
-		__webView.setTitle(WINDOW_TITLE + " - " + __truncate(label, 40));
+		__webView.setWindowTitle(WINDOW_TITLE + " - " + __truncate(label, 40));
 	}
 
 	private static function __onError(message:String):Void

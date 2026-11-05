@@ -1,42 +1,42 @@
 package webview._internal;
 
 import webview.NativeHandleKind;
-import webview.PdfOptions;
+import webview.PDFOptions;
 import webview.WebViewHandle;
 import webview.WebViewHint;
 
 interface IWebViewBackend
 {
 	var handle(get, never):WebViewHandle;
-	var onComplete:Void->Void;
 	var onError:String->Void;
 	var onFocusIn:Void->Void;
 	var onFocusOut:Void->Void;
-	var onLocationChange:String->Void;
-	var onLocationChanging:String->Bool;
+	var onLoad:Void->Void;
 	var onMessage:String->Void;
+	var onNavigate:String->Bool;
+	var onURLChange:String->Void;
 
 	function addInitScript(script:String):Void;
-	function assignFocus(direction:Int):Void;
 	function canGoBack():Bool;
 	function canGoForward():Bool;
 	function capturePreviewBase64(format:Int):String;
-	function destroy():Void;
-	function evaluateJavaScript(script:String):Void;
-	function getLocation():String;
+	function close():Void;
+	function evaluateJavaScript(script:String, onComplete:Bool->String->Void):Void;
+	function focus(direction:Int):Void;
 	function getNativeHandle(kind:NativeHandleKind):WebViewHandle;
 	function getTitle():String;
-	function historyBack():Void;
-	function historyForward():Void;
-	function navigate(url:String):Void;
+	function getURL():String;
+	function goBack():Void;
+	function goForward():Void;
+	function load(url:String):Void;
+	function loadHTML(html:String):Void;
 	function postMessage(message:String):Void;
-	function printToPDF(path:String, options:PdfOptions, onComplete:Bool->String->Void):Void;
+	function printToPDF(path:String, options:PDFOptions, onComplete:Bool->String->Void):Void;
 	function reload():Void;
 	function run():Void;
 	function setBounds(width:Int, height:Int):Void;
-	function setHtml(html:String):Void;
 	function setSize(width:Int, height:Int, hints:WebViewHint = WebViewHint.NONE):Void;
-	function setTitle(title:String):Void;
+	function setWindowTitle(title:String):Void;
 	function stop():Void;
 	function terminate():Void;
 }

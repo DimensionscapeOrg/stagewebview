@@ -243,21 +243,21 @@ static void refreshCallbacks(HLWebViewHandle *handle)
 	handle->backend->setCallbacks(callbacks);
 }
 
-// Owns the Haxe completion closure of one printToPdf request until the platform reports back.
-struct HLPdfRequest
+// Owns the Haxe completion closure of one request until the platform reports back.
+struct HLResultRequest
 {
 	HLRootedClosure callback;
 };
 
-static void onPdfCompleteThunk(void *userData, bool success, const std::string &message)
+static void onResultThunk(void *userData, bool success, const std::string &message)
 {
-	auto *request = reinterpret_cast<HLPdfRequest *>(userData);
+	auto *request = reinterpret_cast<HLResultRequest *>(userData);
 	HLThreadAttach attach;
 	if (request->callback.value != nullptr)
 	{
 		vdynamic *arguments[2];
 		arguments[0] = hl_make_dyn(&success, &hlt_bool);
-		arguments[1] = success ? nullptr : stringArgument(message);
+		arguments[1] = message.empty() ? nullptr : stringArgument(message);
 		hl_dyn_call(request->callback.value, arguments, 2);
 	}
 
@@ -344,10 +344,30 @@ HL_PRIM int HL_NAME(hl_webview_add_init_script)(HL_CFFIPointer *w, vstring *scri
 	return handle != nullptr && handle->backend != nullptr ? handle->backend->addInitScript(toUtf8(script)) : -1;
 }
 
-HL_PRIM int HL_NAME(hl_webview_evaluate_javascript)(HL_CFFIPointer *w, vstring *script)
+HL_PRIM int HL_NAME(hl_webview_evaluate_javascript)(HL_CFFIPointer *w, vstring *script, vclosure *onComplete)
 {
 	auto *handle = unwrap(w);
-	return handle != nullptr && handle->backend != nullptr ? handle->backend->evaluateJavaScript(toUtf8(script)) : -1;
+	if (handle == nullptr || handle->backend == nullptr)
+	{
+		return -1;
+	}
+
+	if (onComplete == nullptr)
+	{
+		return handle->backend->evaluateJavaScript(toUtf8(script));
+	}
+
+	auto *request = new HLResultRequest();
+	request->callback.value = onComplete;
+
+	int result = handle->backend->evaluateJavaScript(toUtf8(script), onResultThunk, request);
+	if (result != 0)
+	{
+		// The platform never accepted the request, so the callback will not arrive.
+		delete request;
+	}
+
+	return result;
 }
 
 HL_PRIM void HL_NAME(hl_webview_set_callbacks)(HL_CFFIPointer *w, vclosure *onLocationChanging, vclosure *onLocationChange, vclosure *onComplete,
@@ -481,10 +501,10 @@ HL_PRIM int HL_NAME(hl_webview_print_to_pdf)(HL_CFFIPointer *w, vstring *path, d
 	options.scale = scale;
 	options.repeatTableHeaders = repeatTableHeaders;
 
-	auto *request = new HLPdfRequest();
+	auto *request = new HLResultRequest();
 	request->callback.value = onComplete;
 
-	int result = handle->backend->printToPdf(toUtf8(path), options, onPdfCompleteThunk, request);
+	int result = handle->backend->printToPdf(toUtf8(path), options, onResultThunk, request);
 	if (result != 0)
 	{
 		// The platform never accepted the request, so the callback will not arrive.
@@ -515,7 +535,7 @@ DEFINE_HL_PRIM(_I32, hl_webview_set_size, _TCFFIPOINTER _I32 _I32 _I32);
 DEFINE_HL_PRIM(_I32, hl_webview_navigate, _TCFFIPOINTER _STRING);
 DEFINE_HL_PRIM(_I32, hl_webview_set_html, _TCFFIPOINTER _STRING);
 DEFINE_HL_PRIM(_I32, hl_webview_add_init_script, _TCFFIPOINTER _STRING);
-DEFINE_HL_PRIM(_I32, hl_webview_evaluate_javascript, _TCFFIPOINTER _STRING);
+DEFINE_HL_PRIM(_I32, hl_webview_evaluate_javascript, _TCFFIPOINTER _STRING _DYN);
 DEFINE_HL_PRIM(_VOID, hl_webview_set_callbacks, _TCFFIPOINTER _DYN _DYN _DYN _DYN _DYN _DYN _DYN);
 DEFINE_HL_PRIM(_I32, hl_webview_history_back, _TCFFIPOINTER);
 DEFINE_HL_PRIM(_I32, hl_webview_history_forward, _TCFFIPOINTER);

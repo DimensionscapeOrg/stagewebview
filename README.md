@@ -30,7 +30,7 @@ Windows needs nothing shipped beside the application: `webview.h` finds the inst
 
 Linux needs the GTK and WebKitGTK development files to build (`sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev`); the build reads their flags from `pkg-config`. At run time it needs a display: an X server, Xvfb, or a Wayland session with XWayland.
 
-Linux and Android deliver page events, messages and PDF results only when the host calls `WebView.processEvents()`. The OpenFL facade does that every frame; plain Haxe hosts call it from their own loop. On Windows, macOS and iOS the host's event loop already does the same work.
+Linux and Android deliver page events, messages, script values and PDF results only when the host calls `WebView.processEvents()`. The OpenFL facade does that every frame; plain Haxe hosts call it from their own loop. On Windows, macOS and iOS the host's event loop already does the same work.
 
 ## Why it exists
 
@@ -47,7 +47,7 @@ The internal backend is kept separate on purpose. That makes the public API clea
 - HashLink hdll support (Windows)
 - Public `webview.WebView` API
 - Optional OpenFL `StageWebView` facade
-- Hidden webviews (`startHidden`) and `printToPDF()` on every platform
+- Hidden webviews (`hidden`) and `printToPDF()` on every platform
 - Dox-generated API docs
 - Samples for basic embedding, live sites, JavaScript bridging, browser UI, docs browsing and PDF reports
 - A release prebuilt `stagewebview.hdll` for `Windows64`
@@ -59,10 +59,9 @@ The internal backend is kept separate on purpose. That makes the public API clea
 
 ```haxe
 import webview.WebView;
-import webview.WebViewHint;
 
 var webView = new WebView(null, {
-	debug: true
+	devTools: true
 });
 
 webView.onMessage = function (message:String):Void
@@ -70,9 +69,9 @@ webView.onMessage = function (message:String):Void
 	trace("Page says: " + message);
 };
 
-webView.setTitle("StageWebView Solo Deck");
-webView.setSize(1280, 720, WebViewHint.NONE);
-webView.loadString("<h1>Hello from plain Haxe</h1>");
+webView.setWindowTitle("StageWebView Solo Deck");
+webView.resize(1280, 720);
+webView.loadHTML("<h1>Hello from plain Haxe</h1>");
 webView.run();
 ```
 
@@ -105,22 +104,33 @@ window.chrome.webview.postMessage("ready");
 
 Messages are strings. The emulated bridge sends a non-string passed to `postMessage` as JSON; WebView2 itself drops it, since `onMessage` reads messages as strings.
 
-On Android the bridge is written into the HTML for `loadString()`. For pages loaded by URL it is injected when the page starts loading, which can be after the page's first scripts have run.
+On Android the bridge is written into the HTML for `loadHTML()`. For pages loaded by URL it is injected when the page starts loading, which can be after the page's first scripts have run.
+
+`evaluateJavaScript()` runs a script in the page and reports its value as JSON:
+
+```haxe
+webView.evaluateJavaScript("document.title", function (success:Bool, result:String):Void
+{
+	trace(success ? haxe.Json.parse(result) : result);
+});
+```
+
+`undefined` gives `null`, and a promise is not waited for. What a value JSON has no form for gives depends on the engine: a function is `{}` on WebView2 and `null` elsewhere. A script that throws fails with the reason, except on Android and older WebView2 Runtimes, which give `null`.
 
 ## PDF output
 
-`printToPDF()` saves the loaded page as a paginated PDF with the platform's own print engine. It works on a webview created with `startHidden`, so reports can be produced without any visible window.
+`printToPDF()` saves the loaded page as a paginated PDF with the platform's own print engine. It works on a webview created with `hidden`, so reports can be produced without any visible window.
 
 ```haxe
-var webView = new WebView(null, {startHidden: true});
-webView.onComplete = function ():Void
+var webView = new WebView(null, {hidden: true});
+webView.onLoad = function ():Void
 {
 	webView.printToPDF("report.pdf", {marginTop: 0.5, marginBottom: 0.5}, function (success:Bool, error:String):Void
 	{
 		trace(success ? "saved" : error);
 	});
 };
-webView.loadString(html);
+webView.loadHTML(html);
 ```
 
 | Platform | How | Notes |
@@ -131,7 +141,7 @@ webView.loadString(html);
 | iOS | `UIPrintPageRenderer` with the web view's print formatter | |
 | Android | `WebView.createPrintDocumentAdapter` driven to a file | uses the result callbacks' hidden constructors (`android/src/android/print`); `scale` and `printBackground` are not supported |
 
-`PdfOptions` takes the paper size and margins in inches. The defaults are US Letter with 0.4 inch margins, which is what WebView2 uses on its own, so documents come out the same everywhere unless you say otherwise.
+`PDFOptions` takes the paper size and margins in inches. The defaults are US Letter with 0.4 inch margins, which is what WebView2 uses on its own, so documents come out the same everywhere unless you say otherwise.
 
 Things learned from the report sample:
 
@@ -139,7 +149,7 @@ Things learned from the report sample:
 - WebKit lays print pages out at 90 CSS pixels per inch where Chromium uses 96, so the same template prints about 6% larger on Linux, macOS and iOS.
 - Set `print-color-adjust: exact` in templates as well as `printBackground`; engines differ in which they honour.
 
-The callback runs from the event loop, never inside the engine's own handler, so it may dispose the webview or open another.
+The callback runs from the event loop, never inside the engine's own handler, so it may close the webview or open another.
 
 ## Embedding
 
@@ -218,10 +228,46 @@ The generated site ends up in `docs/api`.
 
 ## Upgrading from 0.7
 
+`webview.WebView` was renamed to read like other Haxe APIs, and each thing now has one name:
+
+| 0.7 | 1.0 |
+| --- | --- |
+| `loadURL()`, `navigate()` | `load()` |
+| `loadString()`, `setHtml()` | `loadHTML()` |
+| `historyBack()`, `historyForward()` | `goBack()`, `goForward()` |
+| `canGoBack()`, `canGoForward()`, `isHistoryBackEnabled`, `isHistoryForwardEnabled` | `canGoBack`, `canGoForward` |
+| `location`, `getLocation()` | `url` |
+| `getTitle()` | `title` |
+| `assignFocus()` | `focus()` |
+| `dispose()`, `destroy()` | `close()` |
+| `setSize()`, `setBounds()` | `resize()` |
+| `setTitle()` | `setWindowTitle()` |
+| `fromWindow()` | `new WebView()` |
+| `onComplete` | `onLoad` |
+| `onLocationChange` | `onURLChange` |
+| `onLocationChanging` | `onNavigate` |
+| `PdfOptions` | `PDFOptions` |
+
+Options are now typed, so a misspelled one is a compile error:
+
+| 0.7 | 1.0 |
+| --- | --- |
+| `debug`, `enableDevTools` | `devTools` |
+| `enableContextMenu` | `contextMenu` |
+| `enableKeyboardShortcuts` | `keyboardShortcuts` |
+| `enableStatusBar` | `statusBar` |
+| `enableZoom` | `zoom` |
+| `startHidden` | `hidden` |
+| `mediaPlaybackRequiresUserAction` | `autoplay`, the other way around |
+
+The OpenFL facade keeps AIR's names, including `mediaPlaybackRequiresUserAction`, and takes the options above for the ones AIR does not have.
+
 - `WebView.isSupported` is a property, read at run time, so it is no longer a constant. It is `false` on Windows without the WebView2 Runtime, and on targets with no backend, which an HTML5 build made on Windows used to get wrong.
 - `WebView2Loader.dll` and the `EBWebView` folder are no longer shipped or copied beside the application. Nothing needs them, so remove them from any packaging that expects them. Applications still need the WebView2 Runtime, as they always did.
-- The OpenFL facade keeps developer tools off outside `-debug` builds. Pass `{enableDevTools: true}` to turn them on.
-- A navigation cancelled through `onLocationChanging`, or stopped with `stop()`, no longer reaches `onError`.
+- `evaluateJavaScript()` can report the script's value, on every engine.
+- The OpenFL facade keeps developer tools off outside `-debug` builds. Pass `{devTools: true}` to turn them on.
+- `onNavigate` asks about `load()` on every engine, Android included, and no longer asks about the page from `loadHTML()`, which goes nowhere.
+- A navigation cancelled through `onNavigate`, or stopped with `stop()`, no longer reaches `onError`.
 - With a Lime that has `Window.nativeHandle`, the OpenFL facade gets the stage's window from it, so the window's title no longer changes for a moment.
 - Internal classes moved from `_internal.webview` to `webview._internal`. The native sources moved from `lib` to `project`, and `build/BuildNative.xml` and `build/BuildHashlink.xml` are now `project/Build.xml` and `project/BuildHashlink.xml`.
 - `haxelib.json` said MIT in error. The license has always been the Apache License 2.0.

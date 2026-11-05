@@ -29,7 +29,7 @@ static const CGFloat HIDDEN_HEIGHT = 1366;
 
 // One printToPdf request, kept alive until the platform reports back.
 @interface StageWebViewPdfJob : NSObject
-@property(nonatomic, assign) stagewebview::WebViewPdfCallback callback;
+@property(nonatomic, assign) stagewebview::WebViewResultCallback callback;
 @property(nonatomic, assign) void *userData;
 @property(nonatomic, assign) stagewebview::WebViewPdfOptions options;
 @property(nonatomic, strong) NSURL *url;
@@ -204,6 +204,7 @@ public:
 
 	int setHtml(const char *html) override
 	{
+		loadingHtml = true;
 		[view loadHTMLString:[NSString stringWithUTF8String:html != nullptr ? html : ""] baseURL:nil];
 		return 0;
 	}
@@ -216,9 +217,28 @@ public:
 		return 0;
 	}
 
-	int evaluateJavaScript(const char *script) override
+	int evaluateJavaScript(const char *script, WebViewResultCallback callback, void *userData) override
 	{
-		[view evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:nil];
+		NSString *source = [NSString stringWithUTF8String:script];
+		if (callback == nullptr)
+		{
+			[view evaluateJavaScript:source completionHandler:nil];
+			return 0;
+		}
+
+		[view evaluateJavaScript:source
+			   completionHandler:^(id result, NSError *error) {
+				   // WebKit has no type for some values, such as a function, and they have no form in JSON either.
+				   bool unsupported = error != nil && [error.domain isEqualToString:WKErrorDomain] && error.code == WKErrorJavaScriptResultTypeIsUnsupported;
+				   bool success = error == nil || unsupported;
+				   std::string message = !success ? std::string(error.localizedDescription.UTF8String) : (unsupported ? "null" : jsonValue(result));
+
+				   // Report on a later turn of the main queue, outside WebKit's callback, so the callback may dispose
+				   // this webview or create another.
+				   dispatch_async(dispatch_get_main_queue(), ^{
+					   callback(userData, success, message);
+				   });
+			   }];
 		return 0;
 	}
 
@@ -371,7 +391,7 @@ public:
 		}
 	}
 
-	int printToPdf(const char *path, const WebViewPdfOptions &options, WebViewPdfCallback callback, void *userData) override
+	int printToPdf(const char *path, const WebViewPdfOptions &options, WebViewResultCallback callback, void *userData) override
 	{
 		StageWebViewPdfJob *job = [StageWebViewPdfJob new];
 		job.callback = callback;
@@ -423,7 +443,7 @@ public:
 	{
 		if (job.tablesSplit)
 		{
-			evaluateJavaScript(tableHeaderRestoreScript().c_str());
+			evaluateJavaScript(tableHeaderRestoreScript().c_str(), nullptr, nullptr);
 		}
 
 		// Report on a later turn of the main queue, outside WebKit's and AppKit's callbacks, so the callback
@@ -435,6 +455,20 @@ public:
 				job.callback(job.userData, success, reported);
 			}
 		});
+	}
+
+	// NSJSONSerialization only takes a container at the top, so the value goes through an array.
+	static std::string jsonValue(id value)
+	{
+		NSArray *wrapped = value != nil ? @[value] : nil;
+		NSData *data = wrapped != nil && [NSJSONSerialization isValidJSONObject:wrapped] ? [NSJSONSerialization dataWithJSONObject:wrapped options:0 error:nil] : nil;
+		if (data == nil)
+		{
+			return "null";
+		}
+
+		std::string json(static_cast<const char *>(data.bytes), data.length);
+		return json.substr(1, json.size() - 2);
 	}
 
 	// Called by StageWebViewDelegate.

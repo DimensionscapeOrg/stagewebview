@@ -3,7 +3,7 @@ package webview._internal;
 import webview._internal.IWebViewBackend;
 import webview._internal.native.WebViewExterns;
 import webview.NativeHandleKind;
-import webview.PdfOptions;
+import webview.PDFOptions;
 import webview.WebViewHandle;
 import webview.WebViewHint;
 import webview.WebViewOptions;
@@ -12,23 +12,24 @@ import webview.WebViewOptions;
 class WebViewBackend implements IWebViewBackend
 {
 	public var handle(get, never):WebViewHandle;
-	public var onComplete:Void->Void;
+	public var onLoad:Void->Void;
 	public var onError:String->Void;
 	public var onFocusIn:Void->Void;
 	public var onFocusOut:Void->Void;
-	public var onLocationChange:String->Void;
-	public var onLocationChanging:String->Bool;
+	public var onURLChange:String->Void;
+	public var onNavigate:String->Bool;
 	public var onMessage:String->Void;
 
 	private var __handle:WebViewHandle;
 
 	public function new(?window:WebViewHandle, ?options:WebViewOptions)
 	{
-		var config = options != null ? options : new WebViewOptions();
-		var debug = config.debug == true;
-		__handle = WebViewExterns.create(debug ? 1 : 0, window, config.userAgent, __boolToNative(config.mediaPlaybackRequiresUserAction),
-			__boolToNative(config.enableContextMenu), __boolToNative(config.enableKeyboardShortcuts), __boolToNative(config.enableDevTools),
-			__boolToNative(config.enableStatusBar), __boolToNative(config.enableZoom), __boolToNative(config.startHidden));
+		var config:WebViewOptions = options != null ? options : {};
+		var mediaNeedsUserAction = config.autoplay == null ? null : !config.autoplay;
+		var userAgent:String = config.userAgent;
+		__handle = WebViewExterns.create(config.devTools == true ? 1 : 0, window, userAgent, __boolToNative(mediaNeedsUserAction),
+			__boolToNative(config.contextMenu), __boolToNative(config.keyboardShortcuts), __boolToNative(config.devTools),
+			__boolToNative(config.statusBar), __boolToNative(config.zoom), __boolToNative(config.hidden));
 		if (__handle == null)
 		{
 			throw "Failed to create a WebView";
@@ -41,7 +42,7 @@ class WebViewBackend implements IWebViewBackend
 		#end
 	}
 
-	public function destroy():Void
+	public function close():Void
 	{
 		if (__handle == null)
 		{
@@ -72,7 +73,7 @@ class WebViewBackend implements IWebViewBackend
 		WebViewExterns.addInitScript(__handle, script);
 	}
 
-	public function navigate(url:String):Void
+	public function load(url:String):Void
 	{
 		if (__handle == null)
 		{
@@ -82,7 +83,7 @@ class WebViewBackend implements IWebViewBackend
 		WebViewExterns.navigate(__handle, url);
 	}
 
-	public function setHtml(html:String):Void
+	public function loadHTML(html:String):Void
 	{
 		if (__handle == null)
 		{
@@ -92,17 +93,27 @@ class WebViewBackend implements IWebViewBackend
 		WebViewExterns.setHtml(__handle, html);
 	}
 
-	public function evaluateJavaScript(script:String):Void
+	public function evaluateJavaScript(script:String, onComplete:Bool->String->Void):Void
 	{
 		if (__handle == null)
 		{
+			if (onComplete != null)
+			{
+				onComplete(false, "The webview has closed");
+			}
+
 			return;
 		}
 
-		WebViewExterns.evaluateJavaScript(__handle, script);
+		var result = WebViewExterns.evaluateJavaScript(__handle, script, onComplete != null ? __resultCallback(onComplete) : null);
+
+		if (result != 0 && onComplete != null)
+		{
+			onComplete(false, "The platform could not run the script (" + result + ")");
+		}
 	}
 
-	public function historyBack():Void
+	public function goBack():Void
 	{
 		if (__handle == null)
 		{
@@ -112,7 +123,7 @@ class WebViewBackend implements IWebViewBackend
 		WebViewExterns.historyBack(__handle);
 	}
 
-	public function historyForward():Void
+	public function goForward():Void
 	{
 		if (__handle == null)
 		{
@@ -162,7 +173,7 @@ class WebViewBackend implements IWebViewBackend
 		WebViewExterns.terminate(__handle);
 	}
 
-	public function setTitle(title:String):Void
+	public function setWindowTitle(title:String):Void
 	{
 		if (__handle == null)
 		{
@@ -182,33 +193,21 @@ class WebViewBackend implements IWebViewBackend
 		WebViewExterns.postMessage(__handle, message);
 	}
 
-	public function printToPDF(path:String, options:PdfOptions, onComplete:Bool->String->Void):Void
+	public function printToPDF(path:String, options:PDFOptions, onComplete:Bool->String->Void):Void
 	{
 		if (__handle == null)
 		{
 			if (onComplete != null)
 			{
-				onComplete(false, "The webview has been disposed");
+				onComplete(false, "The webview has closed");
 			}
 
 			return;
 		}
 
-		var done = function(success:Bool, error:Dynamic):Void
-		{
-			if (onComplete != null)
-			{
-				#if hl
-				onComplete(success, error != null ? __dynamicToString(error) : null);
-				#else
-				onComplete(success, error);
-				#end
-			}
-		};
-
 		var result = WebViewExterns.printToPdf(__handle, path, options.pageWidth, options.pageHeight, options.marginTop, options.marginRight,
 			options.marginBottom, options.marginLeft, options.landscape ? 1 : 0, options.printBackground ? 1 : 0, options.scale,
-			options.repeatTableHeaders ? 1 : 0, done);
+			options.repeatTableHeaders ? 1 : 0, onComplete != null ? __resultCallback(onComplete) : null);
 
 		if (result != 0 && onComplete != null)
 		{
@@ -216,7 +215,7 @@ class WebViewBackend implements IWebViewBackend
 		}
 	}
 
-	public function assignFocus(direction:Int):Void
+	public function focus(direction:Int):Void
 	{
 		if (__handle == null)
 		{
@@ -246,7 +245,7 @@ class WebViewBackend implements IWebViewBackend
 		return WebViewExterns.canGoForward(__handle) != 0;
 	}
 
-	public function getLocation():String
+	public function getURL():String
 	{
 		if (__handle == null)
 		{
@@ -299,22 +298,22 @@ class WebViewBackend implements IWebViewBackend
 
 	private function __onLocationChanging(location:String):Bool
 	{
-		return onLocationChanging != null ? onLocationChanging(location) : false;
+		return onNavigate != null ? onNavigate(location) : false;
 	}
 
 	private function __onLocationChange(location:String):Void
 	{
-		if (onLocationChange != null)
+		if (onURLChange != null)
 		{
-			onLocationChange(location);
+			onURLChange(location);
 		}
 	}
 
 	private function __onComplete():Void
 	{
-		if (onComplete != null)
+		if (onLoad != null)
 		{
-			onComplete();
+			onLoad();
 		}
 	}
 
@@ -348,6 +347,18 @@ class WebViewBackend implements IWebViewBackend
 		{
 			onMessage(message);
 		}
+	}
+
+	private function __resultCallback(onComplete:Bool->String->Void):Dynamic
+	{
+		return function(success:Bool, message:Dynamic):Void
+		{
+			#if hl
+			onComplete(success, message != null ? __dynamicToString(message) : null);
+			#else
+			onComplete(success, message);
+			#end
+		};
 	}
 
 	private inline function get_handle():WebViewHandle

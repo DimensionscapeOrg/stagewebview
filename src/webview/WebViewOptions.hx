@@ -1,86 +1,63 @@
 package webview;
 
 /**
-	Optional construction settings for `webview.WebView`.
-
-	Available fields:
-
-	- `debug`: Enables backend debugging features when supported.
-	- `mediaPlaybackRequiresUserAction`: Makes media wait for a user action before
-	  it plays, on Linux, macOS, iOS and Android.
-	- `userAgent`: Overrides the browser user agent on supported backends.
-	- `enableContextMenu`: Enables or disables the native context menu.
-	- `enableKeyboardShortcuts`: Enables or disables browser keyboard shortcuts.
-	- `enableDevTools`: Enables or disables developer tools access.
-	- `enableStatusBar`: Enables or disables status bar popups.
-	- `enableZoom`: Enables or disables user zoom gestures and shortcuts.
-	- `startHidden`: Creates the webview without any visible window, for
-	  off-screen work such as `printToPDF()`. Only applies when no host window
-	  is passed.
+	What a `webview.WebView` is created with. Everything is optional.
 
 	## Example
 
 	```haxe
 	var webView = new webview.WebView(windowHandle, {
-		debug: true,
-		userAgent: "StageWebView demo",
-		enableDevTools: true
+		devTools: true,
+		userAgent: "StageWebView demo"
 	});
 	```
 **/
-@:structInit
-class WebViewOptions
+typedef WebViewOptions =
 {
-	public function new() {}
-
 	/**
-		Enables backend debugging features when supported.
+		Whether media plays without waiting for a user action. `false` by default.
+		Applied on Linux, macOS, iOS and Android.
 	**/
-	public var debug:Null<Bool> = null;
+	@:optional var autoplay:Bool;
 
 	/**
-		Makes media wait for a user action before it plays. Applied on Linux, macOS,
-		iOS and Android. Windows stores the value, but does not apply it yet.
+		Whether the user can open the page's context menu. `true` by default.
 	**/
-	public var mediaPlaybackRequiresUserAction:Null<Bool> = null;
+	@:optional var contextMenu:Bool;
 
 	/**
-		Overrides the browser user agent on supported backends.
+		Whether the engine's developer tools are available. `false` by default.
 	**/
-	public var userAgent:String = null;
+	@:optional var devTools:Bool;
 
 	/**
-		Enables or disables the native context menu when supported.
-	**/
-	public var enableContextMenu:Null<Bool> = null;
-
-	/**
-		Enables or disables browser keyboard shortcuts when supported.
-	**/
-	public var enableKeyboardShortcuts:Null<Bool> = null;
-
-	/**
-		Enables or disables developer tools access when supported.
-	**/
-	public var enableDevTools:Null<Bool> = null;
-
-	/**
-		Enables or disables status bar popups when supported.
-	**/
-	public var enableStatusBar:Null<Bool> = null;
-
-	/**
-		Enables or disables user zoom operations when supported.
-	**/
-	public var enableZoom:Null<Bool> = null;
-
-	/**
-		Creates the webview without any visible window when no host window is
-		passed. Use it for off-screen work such as `printToPDF()`.
+		Whether the webview has no visible window, for off-screen work such as
+		`printToPDF()`. `false` by default, and only for a webview without a host
+		window.
 
 		Windows parents WebView2 into a window that is never shown, Linux uses a
 		GTK offscreen window, macOS an off-screen window, and iOS and Android a
 		view that is never attached to the screen.
 	**/
-	public var startHidden:Null<Bool> = null;
+	@:optional var hidden:Bool;
+
+	/**
+		Whether browser shortcuts, such as the one to print, work. `true` by default.
+	**/
+	@:optional var keyboardShortcuts:Bool;
+
+	/**
+		Whether the status bar shows, as it does over a link. `true` by default.
+	**/
+	@:optional var statusBar:Bool;
+
+	/**
+		What the webview says it is, in place of the engine's own user agent.
+	**/
+	@:optional var userAgent:String;
+
+	/**
+		Whether the user can zoom the page. `true` by default.
+	**/
+	@:optional var zoom:Bool;
 }

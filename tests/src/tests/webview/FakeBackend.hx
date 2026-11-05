@@ -2,13 +2,12 @@ package tests.webview;
 
 import webview._internal.IWebViewBackend;
 import webview.NativeHandleKind;
-import webview.PdfOptions;
+import webview.PDFOptions;
 import webview.WebViewHandle;
 import webview.WebViewHint;
 
 class FakeBackend implements IWebViewBackend
 {
-	public var createdWithDebug:Bool;
 	public var createdWithOptions:webview.WebViewOptions;
 	public var createdWithWindow:WebViewHandle;
 	public var destroyed:Bool;
@@ -25,12 +24,12 @@ class FakeBackend implements IWebViewBackend
 	public var lastSizeWidth:Int;
 	public var lastWindowTitle:String;
 	public var location:String;
-	public var onComplete:Void->Void;
+	public var onLoad:Void->Void;
 	public var onError:String->Void;
 	public var onFocusIn:Void->Void;
 	public var onFocusOut:Void->Void;
-	public var onLocationChange:String->Void;
-	public var onLocationChanging:String->Bool;
+	public var onURLChange:String->Void;
+	public var onNavigate:String->Bool;
 	public var onMessage:String->Void;
 	public var reloadCount:Int;
 	public var runCount:Int;
@@ -44,8 +43,9 @@ class FakeBackend implements IWebViewBackend
 	public var initScripts:Array<String> = [];
 	public var evaluatedScripts:Array<String> = [];
 	public var lastPdfPath:String;
-	public var lastPdfOptions:PdfOptions;
+	public var lastPdfOptions:PDFOptions;
 	public var pdfResult:{success:Bool, error:String} = {success: true, error: null};
+	public var scriptResult:{success:Bool, result:String} = {success: true, result: "null"};
 
 	private var __handle:WebViewHandle;
 	private var __nativeHandles:Map<Int, WebViewHandle>;
@@ -76,12 +76,17 @@ class FakeBackend implements IWebViewBackend
 		initScripts.push(script);
 	}
 
-	public function evaluateJavaScript(script:String):Void
+	public function evaluateJavaScript(script:String, onComplete:Bool->String->Void):Void
 	{
 		evaluatedScripts.push(script);
+
+		if (onComplete != null)
+		{
+			onComplete(scriptResult.success, scriptResult.result);
+		}
 	}
 
-	public function printToPDF(path:String, options:PdfOptions, onComplete:Bool->String->Void):Void
+	public function printToPDF(path:String, options:PDFOptions, onComplete:Bool->String->Void):Void
 	{
 		lastPdfPath = path;
 		lastPdfOptions = options;
@@ -92,7 +97,7 @@ class FakeBackend implements IWebViewBackend
 		}
 	}
 
-	public function assignFocus(direction:Int):Void
+	public function focus(direction:Int):Void
 	{
 		lastFocusDirection = direction;
 	}
@@ -113,7 +118,7 @@ class FakeBackend implements IWebViewBackend
 		return previewBase64;
 	}
 
-	public function destroy():Void
+	public function close():Void
 	{
 		destroyed = true;
 		__handle = null;
@@ -121,9 +126,9 @@ class FakeBackend implements IWebViewBackend
 
 	public function emitComplete():Void
 	{
-		if (onComplete != null)
+		if (onLoad != null)
 		{
-			onComplete();
+			onLoad();
 		}
 	}
 
@@ -155,16 +160,16 @@ class FakeBackend implements IWebViewBackend
 	{
 		location = nextLocation;
 
-		if (onLocationChange != null)
+		if (onURLChange != null)
 		{
-			onLocationChange(nextLocation);
+			onURLChange(nextLocation);
 		}
 	}
 
 	public function emitLocationChanging(nextLocation:String):Bool
 	{
 		location = nextLocation;
-		return onLocationChanging != null ? onLocationChanging(nextLocation) : false;
+		return onNavigate != null ? onNavigate(nextLocation) : false;
 	}
 
 	public function emitMessage(message:String):Void
@@ -175,7 +180,7 @@ class FakeBackend implements IWebViewBackend
 		}
 	}
 
-	public function getLocation():String
+	public function getURL():String
 	{
 		return location;
 	}
@@ -190,17 +195,17 @@ class FakeBackend implements IWebViewBackend
 		return title;
 	}
 
-	public function historyBack():Void
+	public function goBack():Void
 	{
 		historyBackCount++;
 	}
 
-	public function historyForward():Void
+	public function goForward():Void
 	{
 		historyForwardCount++;
 	}
 
-	public function navigate(url:String):Void
+	public function load(url:String):Void
 	{
 		lastNavigate = url;
 		location = url != null ? url : "";
@@ -232,7 +237,7 @@ class FakeBackend implements IWebViewBackend
 		lastBoundsHeight = height;
 	}
 
-	public function setHtml(html:String):Void
+	public function loadHTML(html:String):Void
 	{
 		lastHtml = html;
 		location = "about:blank";
@@ -245,7 +250,7 @@ class FakeBackend implements IWebViewBackend
 		lastSizeHints = hints;
 	}
 
-	public function setTitle(title:String):Void
+	public function setWindowTitle(title:String):Void
 	{
 		lastWindowTitle = title != null ? title : "";
 	}

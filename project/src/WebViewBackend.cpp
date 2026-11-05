@@ -135,6 +135,40 @@ static HWND createHiddenHostWindow()
 
 namespace stagewebview {
 
+namespace {
+
+struct PendingResult
+{
+	WebViewResultCallback callback;
+	void *userData;
+	bool success;
+	std::string message;
+};
+
+// Report from the message loop rather than from inside a WebView2 handler: WebView2 cannot create a controller while
+// one of its handlers is running, so a callback that opens a new webview (a preview of a PDF, say) would never return.
+// A webview that closed in the meantime has no message loop to report from.
+void reportResult(webview_t view, const std::shared_ptr<bool> &open, WebViewResultCallback callback, void *userData, bool success,
+	const std::string &message)
+{
+	if (!*open)
+	{
+		callback(userData, false, "The webview has closed");
+		return;
+	}
+
+	webview_dispatch(view,
+		[](webview_t, void *arg)
+		{
+			auto *pending = static_cast<PendingResult *>(arg);
+			pending->callback(pending->userData, pending->success, pending->message);
+			delete pending;
+		},
+		new PendingResult{callback, userData, success, message});
+}
+
+} // namespace
+
 WebViewBackend *WebViewBackend::create(int debug, void *window, const WebViewCreateOptions &options)
 {
 	auto *backend = new WebViewBackend();
@@ -185,6 +219,7 @@ WebViewBackend *WebViewBackend::create(int debug, void *window, const WebViewCre
 WebViewBackend::~WebViewBackend()
 {
 	#if defined(_WIN32)
+	*open = false;
 	unregisterEvents();
 
 	if (core != nullptr)
@@ -242,6 +277,7 @@ int WebViewBackend::setHtml(const char *html)
 		return -1;
 	}
 
+	loadingHtml = true;
 	return static_cast<int>(webview_set_html(handle, html));
 }
 
@@ -255,14 +291,85 @@ int WebViewBackend::addInitScript(const char *script)
 	return static_cast<int>(webview_init(handle, script != nullptr ? script : ""));
 }
 
-int WebViewBackend::evaluateJavaScript(const char *script)
+int WebViewBackend::evaluateJavaScript(const char *script, WebViewResultCallback callback, void *userData)
 {
 	if (handle == nullptr)
 	{
 		return -1;
 	}
 
-	return static_cast<int>(webview_eval(handle, script != nullptr ? script : ""));
+	if (script == nullptr)
+	{
+		script = "";
+	}
+
+	if (callback == nullptr)
+	{
+		return static_cast<int>(webview_eval(handle, script));
+	}
+
+	if (core == nullptr)
+	{
+		return -2;
+	}
+
+	auto wideScript = webview::detail::widen_string(std::string(script));
+	webview_t view = handle;
+	std::shared_ptr<bool> isOpen = open;
+
+	// Only this newer call says that a script threw: the older one reports that as null.
+	ICoreWebView2_21 *core21 = nullptr;
+	if (SUCCEEDED(core->QueryInterface(IID_ICoreWebView2_21, reinterpret_cast<void **>(&core21))) && core21 != nullptr)
+	{
+		auto result = core21->ExecuteScriptWithResult(wideScript.c_str(),
+			Microsoft::WRL::Callback<ICoreWebView2ExecuteScriptWithResultCompletedHandler>(
+				[callback, userData, view, isOpen](HRESULT errorCode, ICoreWebView2ExecuteScriptResult *executed) -> HRESULT
+				{
+					BOOL succeeded = FALSE;
+					if (FAILED(errorCode) || executed == nullptr || FAILED(executed->get_Succeeded(&succeeded)))
+					{
+						reportResult(view, isOpen, callback, userData, false, "ExecuteScript failed: " + std::to_string(static_cast<long>(errorCode)));
+						return S_OK;
+					}
+
+					LPWSTR text = nullptr;
+					if (succeeded)
+					{
+						executed->get_ResultAsJson(&text);
+					}
+					else
+					{
+						ICoreWebView2ScriptException *exception = nullptr;
+						if (SUCCEEDED(executed->get_Exception(&exception)) && exception != nullptr)
+						{
+							exception->get_Message(&text);
+							exception->Release();
+						}
+					}
+
+					std::string message = wideToUtf8(text);
+					CoTaskMemFree(text);
+					reportResult(view, isOpen, callback, userData, succeeded != FALSE, !message.empty() ? message : (succeeded ? "null" : "The script threw"));
+					return S_OK;
+				})
+				.Get());
+
+		core21->Release();
+		return SUCCEEDED(result) ? 0 : -3;
+	}
+
+	auto result = core->ExecuteScript(wideScript.c_str(),
+		Microsoft::WRL::Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
+			[callback, userData, view, isOpen](HRESULT errorCode, LPCWSTR json) -> HRESULT
+			{
+				bool success = SUCCEEDED(errorCode);
+				reportResult(view, isOpen, callback, userData, success,
+					success ? wideToUtf8(json) : "ExecuteScript failed: " + std::to_string(static_cast<long>(errorCode)));
+				return S_OK;
+			})
+			.Get());
+
+	return SUCCEEDED(result) ? 0 : -3;
 }
 
 void WebViewBackend::setCallbacks(const WebViewCallbackSet &value)
@@ -591,7 +698,7 @@ void WebViewBackend::webView2ControllerSetBounds(void *controllerHandle, int wid
 	#endif
 }
 
-int WebViewBackend::printToPdf(const char *path, const WebViewPdfOptions &options, WebViewPdfCallback callback, void *userData)
+int WebViewBackend::printToPdf(const char *path, const WebViewPdfOptions &options, WebViewResultCallback callback, void *userData)
 {
 	if (core == nullptr || path == nullptr || path[0] == '\0')
 	{
@@ -675,19 +782,12 @@ int WebViewBackend::printToPdf(const char *path, const WebViewPdfOptions &option
 		settings->put_ShouldPrintHeaderAndFooter(FALSE);
 	}
 
-	struct PdfResult
-	{
-		WebViewPdfCallback callback;
-		void *userData;
-		bool success;
-		std::string message;
-	};
-
 	auto widePath = webview::detail::widen_string(std::string(path));
 	webview_t view = handle;
+	std::shared_ptr<bool> isOpen = open;
 	auto result = core7->PrintToPdf(widePath.c_str(), settings,
 		Microsoft::WRL::Callback<ICoreWebView2PrintToPdfCompletedHandler>(
-			[callback, userData, view](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+			[callback, userData, view, isOpen](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
 			{
 				if (callback == nullptr)
 				{
@@ -695,20 +795,8 @@ int WebViewBackend::printToPdf(const char *path, const WebViewPdfOptions &option
 				}
 
 				bool success = SUCCEEDED(errorCode) && isSuccessful;
-				auto *pdfResult = new PdfResult{callback, userData, success,
-					success ? std::string() : "PrintToPdf failed: " + std::to_string(static_cast<long>(errorCode))};
-
-				// Report from the message loop rather than from inside this WebView2 handler: WebView2 cannot
-				// create a controller while one of its handlers is running, so a callback that opens a new
-				// webview (a preview of the PDF, say) would never return.
-				webview_dispatch(view,
-					[](webview_t, void *arg)
-					{
-						auto *pending = static_cast<PdfResult *>(arg);
-						pending->callback(pending->userData, pending->success, pending->message);
-						delete pending;
-					},
-					pdfResult);
+				reportResult(view, isOpen, callback, userData, success,
+					success ? std::string() : "PrintToPdf failed: " + std::to_string(static_cast<long>(errorCode)));
 				return S_OK;
 			})
 			.Get());
@@ -906,7 +994,12 @@ void WebViewBackend::registerEvents()
 						CoTaskMemFree(uri);
 					}
 
-					if (notifyLocationChanging(location))
+					// The page from setHtml is the application's own, so there is nothing to ask. WebView2 gives it a data URL.
+					if (loadingHtml && location.compare(0, 5, "data:") == 0)
+					{
+						loadingHtml = false;
+					}
+					else if (notifyLocationChanging(location))
 					{
 						args->put_Cancel(TRUE);
 					}

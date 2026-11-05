@@ -19,7 +19,7 @@ extern class WebViewExterns
 	static function navigate(w:WebViewHandle, url:ConstCharStar):Int;
 	static function setHtml(w:WebViewHandle, html:ConstCharStar):Int;
 	static function addInitScript(w:WebViewHandle, script:ConstCharStar):Int;
-	static function evaluateJavaScript(w:WebViewHandle, script:ConstCharStar):Int;
+	static function evaluateJavaScript(w:WebViewHandle, script:ConstCharStar, onComplete:Dynamic):Int;
 	static function setCallbacks(w:WebViewHandle, onLocationChanging:Dynamic, onLocationChange:Dynamic, onComplete:Dynamic, onError:Dynamic, onFocusIn:Dynamic, onFocusOut:Dynamic, onMessage:Dynamic):Void;
 	static function historyBack(w:WebViewHandle):Int;
 	static function historyForward(w:WebViewHandle):Int;
@@ -56,7 +56,7 @@ extern class WebViewExterns
 	static function navigate(w:WebViewHandle, url:String):Int;
 	static function set_html(w:WebViewHandle, html:String):Int;
 	static function add_init_script(w:WebViewHandle, script:String):Int;
-	static function evaluate_javascript(w:WebViewHandle, script:String):Int;
+	static function evaluate_javascript(w:WebViewHandle, script:String, onComplete:Dynamic):Int;
 	static function set_callbacks(w:WebViewHandle, onLocationChanging:Dynamic, onLocationChange:Dynamic, onComplete:Dynamic, onError:Dynamic, onFocusIn:Dynamic,
 		onFocusOut:Dynamic, onMessage:Dynamic):Void;
 	static function history_back(w:WebViewHandle):Int;
@@ -89,8 +89,8 @@ extern class WebViewExterns
 	public static inline function addInitScript(w:WebViewHandle, script:String):Int
 		return add_init_script(w, script);
 
-	public static inline function evaluateJavaScript(w:WebViewHandle, script:String):Int
-		return evaluate_javascript(w, script);
+	public static inline function evaluateJavaScript(w:WebViewHandle, script:String, onComplete:Dynamic):Int
+		return evaluate_javascript(w, script, onComplete);
 
 	public static inline function setCallbacks(w:WebViewHandle, onLocationChanging:Dynamic, onLocationChange:Dynamic, onComplete:Dynamic, onError:Dynamic, onFocusIn:Dynamic, onFocusOut:Dynamic, onMessage:Dynamic):Void
 	{
@@ -172,7 +172,7 @@ class WebViewExterns
 	public static inline function addInitScript(w:Dynamic, script:String):Int
 		return -1;
 
-	public static inline function evaluateJavaScript(w:Dynamic, script:String):Int
+	public static inline function evaluateJavaScript(w:Dynamic, script:String, onComplete:Dynamic):Int
 		return -1;
 
 	public static inline function setCallbacks(w:Dynamic, onLocationChanging:Dynamic, onLocationChange:Dynamic, onComplete:Dynamic, onError:Dynamic,

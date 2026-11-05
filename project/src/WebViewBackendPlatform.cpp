@@ -230,7 +230,7 @@ int PlatformWebView::postMessage(const char *message)
 {
 	std::string script = "window.chrome && window.chrome.webview && window.chrome.webview.__stagewebviewDispatch && window.chrome.webview.__stagewebviewDispatch("
 		+ jsonString(message != nullptr ? message : "") + ");";
-	return evaluateJavaScript(script.c_str());
+	return evaluateJavaScript(script.c_str(), nullptr, nullptr);
 }
 
 WebViewBackend *WebViewBackend::create(int debug, void *window, const WebViewCreateOptions &options)
@@ -273,9 +273,9 @@ int WebViewBackend::addInitScript(const char *script)
 	return platform != nullptr ? platform->addInitScript(script != nullptr ? script : "") : -1;
 }
 
-int WebViewBackend::evaluateJavaScript(const char *script)
+int WebViewBackend::evaluateJavaScript(const char *script, WebViewResultCallback callback, void *userData)
 {
-	return platform != nullptr ? platform->evaluateJavaScript(script != nullptr ? script : "") : -1;
+	return platform != nullptr ? platform->evaluateJavaScript(script != nullptr ? script : "", callback, userData) : -1;
 }
 
 void WebViewBackend::setCallbacks(const WebViewCallbackSet &value)

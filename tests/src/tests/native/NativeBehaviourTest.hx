@@ -6,7 +6,7 @@ import sys.FileSystem;
 import sys.io.File;
 import utest.Assert;
 import utest.Test;
-import webview.PdfOptions;
+import webview.PDFOptions;
 import webview.WebView;
 
 /**
@@ -38,7 +38,7 @@ class NativeBehaviourTest extends Test
 	{
 		if (__webView != null)
 		{
-			__webView.dispose();
+			__webView.close();
 			__webView = null;
 		}
 
@@ -53,7 +53,7 @@ class NativeBehaviourTest extends Test
 	public function testInitScriptRunsBeforePageScripts():Void
 	{
 		__webView.addInitScript("window.__fromInitScript = 'set';");
-		__webView.loadString("<!doctype html><html><body><script>
+		__webView.loadHTML("<!doctype html><html><body><script>
 			window.chrome.webview.postMessage('init:' + window.__fromInitScript);
 		</script></body></html>");
 
@@ -76,23 +76,23 @@ class NativeBehaviourTest extends Test
 		var first = __writeFile("first page.html", "<!doctype html><html><head><title>First</title></head><body>1</body></html>");
 		var second = __writeFile("second.html", "<!doctype html><html><head><title>Second</title></head><body>2</body></html>");
 		var changes:Array<String> = [];
-		__webView.onLocationChange = function(location:String):Void changes.push(location);
+		__webView.onURLChange = function(location:String):Void changes.push(location);
 
 		__navigateAndWait(__fileUrl(first));
 		Assert.isTrue(__waitForTitle("First"), "title is " + __webView.title);
-		Assert.isTrue(__webView.location.indexOf("first%20page.html") >= 0, "location is " + __webView.location);
+		Assert.isTrue(__webView.url.indexOf("first%20page.html") >= 0, "location is " + __webView.url);
 
 		__navigateAndWait(__fileUrl(second));
 		Assert.isTrue(__waitForTitle("Second"), "title is " + __webView.title);
-		Assert.isTrue(StringTools.endsWith(__webView.location, "second.html"), "location is " + __webView.location);
+		Assert.isTrue(StringTools.endsWith(__webView.url, "second.html"), "location is " + __webView.url);
 		Assert.isTrue(changes.length >= 2, "location changes: " + changes);
-		Assert.isTrue(__pumpUntil(function():Bool return __webView.canGoBack()), "canGoBack stayed false");
+		Assert.isTrue(__pumpUntil(function():Bool return __webView.canGoBack), "canGoBack stayed false");
 
 		var completed = false;
-		__webView.onComplete = function():Void completed = true;
-		__webView.historyBack();
+		__webView.onLoad = function():Void completed = true;
+		__webView.goBack();
 		Assert.isTrue(__pumpUntil(function():Bool return completed && __webView.title == "First"), "historyBack did not return to the first page");
-		Assert.isTrue(__pumpUntil(function():Bool return __webView.canGoForward()), "canGoForward stayed false");
+		Assert.isTrue(__pumpUntil(function():Bool return __webView.canGoForward), "canGoForward stayed false");
 	}
 
 	public function testPrintToPDFUsesThePageSize():Void
@@ -148,10 +148,10 @@ class NativeBehaviourTest extends Test
 		var replacementLoaded = false;
 		__webView.printToPDF(Path.join([__directory, "callback.pdf"]), null, function(success:Bool, error:String):Void
 		{
-			__webView.dispose();
+			__webView.close();
 			__webView = __create();
-			__webView.onComplete = function():Void replacementLoaded = true;
-			__webView.loadString("<!doctype html><html><body>second</body></html>");
+			__webView.onLoad = function():Void replacementLoaded = true;
+			__webView.loadHTML("<!doctype html><html><body>second</body></html>");
 		});
 
 		Assert.isTrue(__pumpUntil(function():Bool return replacementLoaded), "the replacement webview never loaded");
@@ -170,7 +170,7 @@ class NativeBehaviourTest extends Test
 
 	private function __create():WebView
 	{
-		var webView = new WebView(null, {startHidden: true});
+		var webView = new WebView(null, {hidden: true});
 		webView.onMessage = function(message:String):Void __messages.push(message);
 		return webView;
 	}
@@ -178,20 +178,20 @@ class NativeBehaviourTest extends Test
 	private function __loadAndWait(html:String):Void
 	{
 		var completed = false;
-		__webView.onComplete = function():Void completed = true;
-		__webView.loadString(html);
+		__webView.onLoad = function():Void completed = true;
+		__webView.loadHTML(html);
 		Assert.isTrue(__pumpUntil(function():Bool return completed), "the page did not load");
 	}
 
 	private function __navigateAndWait(url:String):Void
 	{
 		var completed = false;
-		__webView.onComplete = function():Void completed = true;
-		__webView.navigate(url);
+		__webView.onLoad = function():Void completed = true;
+		__webView.load(url);
 		Assert.isTrue(__pumpUntil(function():Bool return completed), "navigation to " + url + " did not complete");
 	}
 
-	private function __print(path:String, options:PdfOptions):{done:Bool, success:Bool, error:String}
+	private function __print(path:String, options:PDFOptions):{done:Bool, success:Bool, error:String}
 	{
 		var result = {done: false, success: false, error: null};
 		__webView.printToPDF(path, options, function(success:Bool, error:String):Void

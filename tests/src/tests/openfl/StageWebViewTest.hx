@@ -22,11 +22,10 @@ class StageWebViewTest extends Test
 	public function testDeveloperToolsFollowTheBuildUnlessAskedFor():Void
 	{
 		var webView = new StageWebView();
-		var asked = new StageWebView({enableDevTools: true});
+		var asked = new StageWebView({devTools: true});
 
-		Assert.equals(#if debug true #else false #end, @:privateAccess webView.__webViewOptions.enableDevTools);
-		Assert.equals(#if debug true #else false #end, @:privateAccess webView.__webViewOptions.debug);
-		Assert.isTrue(@:privateAccess asked.__webViewOptions.enableDevTools);
+		Assert.equals(#if debug true #else false #end, @:privateAccess webView.__webViewOptions.devTools);
+		Assert.isTrue(@:privateAccess asked.__webViewOptions.devTools);
 
 		webView.dispose();
 		asked.dispose();

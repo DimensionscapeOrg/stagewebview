@@ -17,7 +17,7 @@ public:
 	virtual int navigate(const char *url) = 0;
 	virtual int setHtml(const char *html) = 0;
 	virtual int addInitScript(const char *script) = 0;
-	virtual int evaluateJavaScript(const char *script) = 0;
+	virtual int evaluateJavaScript(const char *script, WebViewResultCallback callback, void *userData) = 0;
 	virtual int historyBack() = 0;
 	virtual int historyForward() = 0;
 	virtual int reload() = 0;
@@ -32,7 +32,7 @@ public:
 	virtual std::string getLocation() const = 0;
 	virtual std::string getTitle() const = 0;
 	virtual void *getNativeHandle(int kind) const = 0;
-	virtual int printToPdf(const char *path, const WebViewPdfOptions &options, WebViewPdfCallback callback, void *userData) = 0;
+	virtual int printToPdf(const char *path, const WebViewPdfOptions &options, WebViewResultCallback callback, void *userData) = 0;
 
 	// Sends a message to the page's window.chrome.webview listeners, matching WebView2's PostWebMessageAsString.
 	int postMessage(const char *message);
@@ -60,8 +60,15 @@ protected:
 	static std::string tableHeaderScript(const WebViewPdfOptions &options, double cssPixelsPerInch);
 	static std::string tableHeaderRestoreScript();
 
-	bool notifyLocationChanging(const std::string &location) const
+	bool notifyLocationChanging(const std::string &location)
 	{
+		// The page from setHtml is the application's own, so there is nothing to ask. WebKit calls it about:blank.
+		if (loadingHtml && location == "about:blank")
+		{
+			loadingHtml = false;
+			return false;
+		}
+
 		return callbacks.onLocationChanging != nullptr ? callbacks.onLocationChanging(callbacks.userData, location) : false;
 	}
 
@@ -116,6 +123,7 @@ protected:
 	static std::string base64Encode(const unsigned char *data, size_t length);
 
 	WebViewCallbackSet callbacks;
+	bool loadingHtml = false;
 };
 
 PlatformWebView *createPlatformWebView(int debug, void *window, const WebViewCreateOptions &options);

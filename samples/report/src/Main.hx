@@ -74,7 +74,7 @@ class Main extends Sprite
 	private function __render():Void
 	{
 		__report("Rendering the report off screen...");
-		__renderer = new WebView(null, {startHidden: true});
+		__renderer = new WebView(null, {hidden: true});
 		__renderer.onError = function(message:String):Void __report("FAIL: " + message);
 		__renderer.onMessage = function(message:String):Void
 		{
@@ -92,12 +92,12 @@ class Main extends Sprite
 				default:
 			}
 		};
-		__renderer.loadString(ReportDocument.html());
+		__renderer.loadHTML(ReportDocument.html());
 	}
 
 	private function __onPrinted(success:Bool, error:String):Void
 	{
-		__renderer.dispose();
+		__renderer.close();
 		__renderer = null;
 
 		if (!success)
@@ -119,7 +119,7 @@ class Main extends Sprite
 		}
 
 		__onResize(null);
-		__preview.loadString(ReportDocument.html());
+		__preview.loadHTML(ReportDocument.html());
 	}
 
 	private function __onPreviewMessage(event:DataEvent):Void

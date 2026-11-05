@@ -18,7 +18,7 @@ public:
 	static int navigate(void *w, const char *url);
 	static int setHtml(void *w, const char *html);
 	static int addInitScript(void *w, const char *script);
-	static int evaluateJavaScript(void *w, const char *script);
+	static int evaluateJavaScript(void *w, const char *script, Dynamic onComplete);
 	static void setCallbacks(void *w, Dynamic onLocationChanging, Dynamic onLocationChange, Dynamic onComplete, Dynamic onError, Dynamic onFocusIn,
 		Dynamic onFocusOut, Dynamic onMessage);
 	static int historyBack(void *w);

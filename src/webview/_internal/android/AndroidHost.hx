@@ -35,6 +35,9 @@ class AndroidHost
 	public static function evaluate(id:Int, script:String):Void
 		__method("evaluate", "(ILjava/lang/String;)V")(id, script);
 
+	public static function evaluateWithResult(id:Int, token:Int, script:String):Void
+		__method("evaluateWithResult", "(IILjava/lang/String;)V")(id, token, script);
+
 	public static function command(id:Int, command:String):Void
 		__method("command", "(ILjava/lang/String;)V")(id, command);
 
@@ -58,8 +61,8 @@ class AndroidHost
 		__method("printToPdf", "(IILjava/lang/String;DDDDDDZ)V")(id, token, path, pageWidth, pageHeight, marginTop, marginRight, marginBottom, marginLeft,
 			landscape);
 
-	public static function pollEvents():String
-		return __method("pollEvents", "()Ljava/lang/String;")();
+	public static function pollEvent():String
+		return __method("pollEvent", "()Ljava/lang/String;")();
 
 	public static function resolveNavigation(token:Int, cancel:Bool):Void
 		__method("resolveNavigation", "(IZ)V")(token, cancel);

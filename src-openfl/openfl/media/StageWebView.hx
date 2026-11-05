@@ -25,7 +25,7 @@ import openfl.geom.Rectangle;
 import openfl.utils.ByteArray;
 import stagewebview._internal.win.WinUtil;
 import webview.NativeHandleKind;
-import webview.PdfOptions;
+import webview.PDFOptions;
 import webview.WebView;
 import webview.WebViewHandle;
 import webview.WebViewOptions;
@@ -46,11 +46,11 @@ import webview.WebViewOptions;
 
 	- `mediaPlaybackRequiresUserAction`
 	- `userAgent`
-	- `enableContextMenu`
-	- `enableKeyboardShortcuts`
-	- `enableDevTools`
-	- `enableStatusBar`
-	- `enableZoom`
+	- `contextMenu`
+	- `keyboardShortcuts`
+	- `devTools`
+	- `statusBar`
+	- `zoom`
 
 	## Example
 
@@ -163,7 +163,7 @@ final class StageWebView extends EventDispatcher
 	{
 		if (__webView != null)
 		{
-			__webView.assignFocus(cast direction);
+			__webView.focus(cast direction);
 		}
 	}
 
@@ -250,7 +250,7 @@ final class StageWebView extends EventDispatcher
 	{
 		if (__webView != null)
 		{
-			__webView.historyBack();
+			__webView.goBack();
 		}
 	}
 
@@ -259,7 +259,7 @@ final class StageWebView extends EventDispatcher
 	{
 		if (__webView != null)
 		{
-			__webView.historyForward();
+			__webView.goForward();
 		}
 	}
 
@@ -287,7 +287,7 @@ final class StageWebView extends EventDispatcher
 
 		if (__webView != null)
 		{
-			__webView.setHtml(text);
+			__webView.loadHTML(text);
 		}
 	}
 
@@ -328,7 +328,7 @@ final class StageWebView extends EventDispatcher
 
 		if (__webView != null)
 		{
-			__webView.navigate(url);
+			__webView.load(url);
 		}
 	}
 
@@ -352,12 +352,18 @@ final class StageWebView extends EventDispatcher
 		to Haxe over the normal webview message channel.
 
 		@param script JavaScript source to execute in the current page.
+		@param onComplete Receives `true` and the script's value as JSON, or `false`
+			and an error message.
 	**/
-	public function evaluateJavaScript(script:String):Void
+	public function evaluateJavaScript(script:String, ?onComplete:(success:Bool, result:String)->Void):Void
 	{
 		if (__webView != null)
 		{
-			__webView.evaluateJavaScript(script);
+			__webView.evaluateJavaScript(script, onComplete);
+		}
+		else if (onComplete != null)
+		{
+			onComplete(false, "The webview is not on a stage");
 		}
 	}
 
@@ -369,7 +375,7 @@ final class StageWebView extends EventDispatcher
 		@param onComplete Receives `true` and `null` on success, or `false` and an
 			error message.
 	**/
-	public function printToPDF(path:String, ?options:PdfOptions, ?onComplete:(success:Bool, error:String)->Void):Void
+	public function printToPDF(path:String, ?options:PDFOptions, ?onComplete:(success:Bool, error:String)->Void):Void
 	{
 		if (__webView == null)
 		{
@@ -417,7 +423,7 @@ final class StageWebView extends EventDispatcher
 				var second = configuration[1];
 				if (__isBool(second))
 				{
-					__webViewOptions.mediaPlaybackRequiresUserAction = second;
+					__webViewOptions.autoplay = !second;
 				}
 			}
 
@@ -429,16 +435,12 @@ final class StageWebView extends EventDispatcher
 			return;
 		}
 
-		__copyBoolOption(first, "mediaPlaybackRequiresUserAction", function(value) __webViewOptions.mediaPlaybackRequiresUserAction = value);
-		__copyBoolOption(first, "enableContextMenu", function(value) __webViewOptions.enableContextMenu = value);
-		__copyBoolOption(first, "enableKeyboardShortcuts", function(value) __webViewOptions.enableKeyboardShortcuts = value);
-		__copyBoolOption(first, "enableDevTools", function(value)
-		{
-			__webViewOptions.enableDevTools = value;
-			__webViewOptions.debug = value;
-		});
-		__copyBoolOption(first, "enableStatusBar", function(value) __webViewOptions.enableStatusBar = value);
-		__copyBoolOption(first, "enableZoom", function(value) __webViewOptions.enableZoom = value);
+		__copyBoolOption(first, "mediaPlaybackRequiresUserAction", function(value) __webViewOptions.autoplay = !value);
+		__copyBoolOption(first, "contextMenu", function(value) __webViewOptions.contextMenu = value);
+		__copyBoolOption(first, "keyboardShortcuts", function(value) __webViewOptions.keyboardShortcuts = value);
+		__copyBoolOption(first, "devTools", function(value) __webViewOptions.devTools = value);
+		__copyBoolOption(first, "statusBar", function(value) __webViewOptions.statusBar = value);
+		__copyBoolOption(first, "zoom", function(value) __webViewOptions.zoom = value);
 
 		if (Reflect.hasField(first, "userAgent"))
 		{
@@ -474,9 +476,9 @@ final class StageWebView extends EventDispatcher
 			return;
 		}
 
-		__webView.onLocationChanging = __handleLocationChanging;
-		__webView.onLocationChange = __handleLocationChange;
-		__webView.onComplete = __handleComplete;
+		__webView.onNavigate = __handleLocationChanging;
+		__webView.onURLChange = __handleLocationChange;
+		__webView.onLoad = __handleComplete;
 		__webView.onError = __handleError;
 		__webView.onFocusIn = __handleFocusIn;
 		__webView.onFocusOut = __handleFocusOut;
@@ -502,16 +504,15 @@ final class StageWebView extends EventDispatcher
 
 	private function __createDefaultOptions():WebViewOptions
 	{
-		var options = new WebViewOptions();
-		options.mediaPlaybackRequiresUserAction = true;
-		options.enableContextMenu = true;
-		options.enableKeyboardShortcuts = true;
-		// Developer tools stay out of release builds, unless the configuration asks for them
-		options.enableDevTools = #if debug true #else false #end;
-		options.enableStatusBar = true;
-		options.enableZoom = true;
-		options.debug = #if debug true #else false #end;
-		return options;
+		return {
+			autoplay: false,
+			contextMenu: true,
+			// Developer tools stay out of release builds, unless the configuration asks for them
+			devTools: #if debug true #else false #end,
+			keyboardShortcuts: true,
+			statusBar: true,
+			zoom: true
+		};
 	}
 
 	private function __createWebView():Void
@@ -550,11 +551,11 @@ final class StageWebView extends EventDispatcher
 
 		if (__pendingHTML != null)
 		{
-			__webView.setHtml(__pendingHTML);
+			__webView.loadHTML(__pendingHTML);
 		}
 		else if (__location != "")
 		{
-			__webView.navigate(__location);
+			__webView.load(__location);
 		}
 	}
 
@@ -571,7 +572,7 @@ final class StageWebView extends EventDispatcher
 
 		if (__webView != null)
 		{
-			__webView.dispose();
+			__webView.close();
 			__webView = null;
 		}
 
@@ -736,7 +737,7 @@ final class StageWebView extends EventDispatcher
 		}
 		#end
 
-		__webView.setBounds(width, height);
+		__webView.resize(width, height);
 		WinUtil.showWindow(__childWindowHandle);
 	}
 
@@ -796,19 +797,19 @@ final class StageWebView extends EventDispatcher
 
 	private inline function get_isHistoryBackEnabled():Bool
 	{
-		return __webView != null ? __webView.canGoBack() : false;
+		return __webView != null ? __webView.canGoBack : false;
 	}
 
 	private inline function get_isHistoryForwardEnabled():Bool
 	{
-		return __webView != null ? __webView.canGoForward() : false;
+		return __webView != null ? __webView.canGoForward : false;
 	}
 
 	private inline function get_location():String
 	{
 		if (__webView != null)
 		{
-			var value = __webView.getLocation();
+			var value = __webView.url;
 			if (value != null && value != "")
 			{
 				__location = value;
@@ -820,7 +821,7 @@ final class StageWebView extends EventDispatcher
 
 	private inline function get_mediaPlaybackRequiresUserAction():Bool
 	{
-		return __webViewOptions.mediaPlaybackRequiresUserAction != null ? __webViewOptions.mediaPlaybackRequiresUserAction : true;
+		return __webViewOptions.autoplay != true;
 	}
 
 	private inline function get_stage():Stage
@@ -832,7 +833,7 @@ final class StageWebView extends EventDispatcher
 	{
 		if (__webView != null)
 		{
-			var value = __webView.getTitle();
+			var value = __webView.title;
 			if (value != null)
 			{
 				__title = value;
@@ -849,7 +850,7 @@ final class StageWebView extends EventDispatcher
 
 	private inline function set_mediaPlaybackRequiresUserAction(value:Bool):Bool
 	{
-		__webViewOptions.mediaPlaybackRequiresUserAction = value;
+		__webViewOptions.autoplay = !value;
 		return value;
 	}
 

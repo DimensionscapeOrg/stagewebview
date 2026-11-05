@@ -128,18 +128,9 @@ public final class StageWebViewHost {
 
 	// ---- events ----
 
-	public static String pollEvents() {
-		StringBuilder out = null;
-		String event;
-		while ((event = EVENTS.poll()) != null) {
-			if (out == null) {
-				out = new StringBuilder();
-			} else {
-				out.append('\u001E');
-			}
-			out.append(event);
-		}
-		return out != null ? out.toString() : null;
+	/** One event at a time: a payload is whatever the page sent, so no separator between events would be safe. */
+	public static String pollEvent() {
+		return EVENTS.poll();
 	}
 
 	/** Answers a "changing" event: Haxe decided whether the page-initiated navigation is cancelled. */
@@ -275,6 +266,26 @@ public final class StageWebViewHost {
 			@Override
 			public void run(Entry entry, WebView view) {
 				view.evaluateJavascript(script, null);
+			}
+		});
+	}
+
+	/** Reports through a "script" event whose payload is token, "1", and the value as JSON, separated by U+001D. */
+	public static void evaluateWithResult(final int id, final int token, final String script) {
+		if (!VIEWS.containsKey(id)) {
+			emit(id, "script", token + "\u001D0\u001DThe webview has been disposed");
+			return;
+		}
+
+		withView(id, new ViewAction() {
+			@Override
+			public void run(Entry entry, WebView view) {
+				view.evaluateJavascript(script, new ValueCallback<String>() {
+					@Override
+					public void onReceiveValue(String value) {
+						emit(id, "script", token + "\u001D1\u001D" + (value != null ? value : "null"));
+					}
+				});
 			}
 		});
 	}

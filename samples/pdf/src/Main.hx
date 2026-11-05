@@ -25,7 +25,7 @@ class Main
 		var finished = false;
 		var exitCode = 1;
 
-		var webView = new WebView(null, {startHidden: true});
+		var webView = new WebView(null, {hidden: true});
 
 		webView.onError = function(message:String):Void
 		{
@@ -64,7 +64,7 @@ class Main
 			}
 		};
 
-		webView.loadString(ReportDocument.html());
+		webView.loadHTML(ReportDocument.html());
 
 		var deadline = Timer.stamp() + TIMEOUT_SECONDS;
 		while (!finished && Timer.stamp() < deadline)
@@ -78,7 +78,7 @@ class Main
 			Sys.println("timed out after " + TIMEOUT_SECONDS + " seconds");
 		}
 
-		webView.dispose();
+		webView.close();
 		Sys.exit(exitCode);
 	}
 }
