@@ -103,7 +103,8 @@ public final class StageWebViewHost {
 
 		Entry(int id, String bridgeScript) {
 			this.id = id;
-			this.bridgeScript = bridgeScript != null ? bridgeScript : BRIDGE_SCRIPT;
+			// JNI hands over a null string from Haxe as an empty one
+			this.bridgeScript = bridgeScript != null && bridgeScript.length() > 0 ? bridgeScript : BRIDGE_SCRIPT;
 		}
 
 		/** Bridge plus init scripts, in the order a page must see them. */
