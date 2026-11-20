@@ -49,6 +49,12 @@ class ExtraParamsMacro
 			return;
 		}
 
+		// OpenFL 9.7 has its own openfl.media.StageWebView, on lime.ui.WebView, so this one is only for older versions
+		if (__isOpenFLVersionAtLeast(9, 7))
+		{
+			return;
+		}
+
 		var openflSourcePath = Path.join([libraryRoot, "src-openfl"]);
 
 		if (FileSystem.exists(openflSourcePath))
@@ -56,6 +62,22 @@ class ExtraParamsMacro
 			Compiler.addClassPath(openflSourcePath);
 			__included = true;
 		}
+	}
+
+	private static function __isOpenFLVersionAtLeast(major:Int, minor:Int):Bool
+	{
+		var version = Context.definedValue("openfl");
+		if (version == null) return false;
+
+		// The define holds the version of the openfl library, such as 9.7.0 or 9.7.0-dev
+		var parts = version.split("-")[0].split(".");
+		var actualMajor = Std.parseInt(parts[0]);
+		var actualMinor = parts.length > 1 ? Std.parseInt(parts[1]) : 0;
+
+		if (actualMajor == null) return false;
+		if (actualMinor == null) actualMinor = 0;
+
+		return actualMajor > major || (actualMajor == major && actualMinor >= minor);
 	}
 
 	// What a program using the native backend needs, set up as its class is built, so that a framework that only

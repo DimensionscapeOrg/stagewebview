@@ -17,6 +17,7 @@ typedef NSView PlatformView;
 #include <string>
 #include <utility>
 
+#include "../FocusScript.h"
 #include "../PlatformWebView.h"
 
 namespace stagewebview {
@@ -308,13 +309,18 @@ public:
 
 	int assignFocus(int direction) override
 	{
-		(void)direction;
-
 		#if TARGET_OS_IPHONE
 		[view becomeFirstResponder];
 		#else
 		[view.window makeFirstResponder:view];
 		#endif
+
+		// WKWebView only enters a page at its first or last element when AppKit moves the focus by Tab or
+		// Shift+Tab, so the element is focused by a script
+		if (direction == 0 || direction == 2)
+		{
+			[view evaluateJavaScript:[NSString stringWithUTF8String:focusEdgeScript(direction == 0)] completionHandler:nil];
+		}
 
 		notifyFocusIn();
 		return 0;

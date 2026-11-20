@@ -8,6 +8,7 @@
 #include <cstring>
 #include <string>
 
+#include "../FocusScript.h"
 #include "../PlatformWebView.h"
 #include "GtkSupport.h"
 
@@ -167,7 +168,19 @@ public:
 
 	int assignFocus(int direction) override
 	{
-		(void)direction;
+		if (direction == 0 || direction == 2)
+		{
+			// WebKitGTK enters the page at its first or last element as the focus moves into it this way,
+			// and the script makes sure of it when the view already had the focus
+			if (!gtk_widget_child_focus(GTK_WIDGET(view), direction == 2 ? GTK_DIR_TAB_FORWARD : GTK_DIR_TAB_BACKWARD))
+			{
+				gtk_widget_grab_focus(GTK_WIDGET(view));
+			}
+
+			evaluate(focusEdgeScript(direction == 0), nullptr, nullptr);
+			return 0;
+		}
+
 		gtk_widget_grab_focus(GTK_WIDGET(view));
 		return 0;
 	}

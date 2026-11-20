@@ -291,6 +291,11 @@ public final class StageWebViewHost {
 		});
 	}
 
+	// Focuses the first or last element of the page that takes the focus, as project/src/FocusScript.h does
+	private static final String FOCUS_SCRIPT = "(function(l){var s='a[href],area[href],button:not([disabled]),input:not([disabled]):not([type=\"hidden\"]),select:not([disabled]),textarea:not([disabled]),iframe,summary,[tabindex]:not([tabindex=\"-1\"]),[contenteditable]:not([contenteditable=\"false\"])';var n=Array.prototype.filter.call(document.querySelectorAll(s),function(e){var r=e.getBoundingClientRect();return r.width>0||r.height>0;});if(n.length)n[l?n.length-1:0].focus();})";
+	private static final String FOCUS_TOP_SCRIPT = FOCUS_SCRIPT + "(false)";
+	private static final String FOCUS_BOTTOM_SCRIPT = FOCUS_SCRIPT + "(true)";
+
 	public static void command(final int id, final String command) {
 		withView(id, new ViewAction() {
 			@Override
@@ -310,6 +315,13 @@ public final class StageWebViewHost {
 						break;
 					case "focus":
 						view.requestFocus();
+						break;
+					case "focusTop":
+					case "focusBottom":
+						// The page is entered at its first or last element, as by Tab or Shift+Tab
+						boolean top = command.equals("focusTop");
+						view.requestFocus(top ? View.FOCUS_FORWARD : View.FOCUS_BACKWARD);
+						view.evaluateJavascript(top ? FOCUS_TOP_SCRIPT : FOCUS_BOTTOM_SCRIPT, null);
 						break;
 					default:
 						break;
