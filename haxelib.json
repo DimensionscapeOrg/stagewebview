@@ -20,9 +20,9 @@
     "web"
   ],
   "description": "Webview library for Haxe on Windows (WebView2), Linux (WebKitGTK), macOS and iOS (WKWebView) and Android, with a public webview.WebView API, an optional OpenFL StageWebView facade, hidden webviews, PDF output, direct hxcpp bindings, and a HashLink hdll on Windows.",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "classPath": "src",
-  "releasenote": "Adds the Linux engine library for ARM64, so a framework that opens it on demand, as Lime does, can show a webview on ARM64 Linux as well as x86-64.",
+  "releasenote": "focus() with a direction enters the page at its first or last element on WebKitGTK, WKWebView and Android, as it already did on WebView2, for keyboard navigation into the view. The OpenFL facade in src-openfl is only added for OpenFL before 9.7, which has its own StageWebView.",
   "contributors": [
     "Dimensionscape"
   ],
