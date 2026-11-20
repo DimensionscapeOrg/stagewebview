@@ -143,7 +143,7 @@ jobs:
           path: ndll/${{ matrix.folder }}/stagewebview-gtk.so
 
   macos:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -190,7 +190,7 @@ jobs:
   # Compiles the native glue for the iOS simulator (x86_64, hxcpp's simulator toolchain) through plain hxcpp,
   # which needs neither an Xcode project nor Lime. Running on iOS is not automated.
   ios-native:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -208,7 +208,7 @@ jobs:
   # The full Lime iOS app build. Lime 8.3.2's static iOS build has had mbedtls symbol problems, so this
   # job is kept apart from ios-native to show which of the two fails.
   ios-lime:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
