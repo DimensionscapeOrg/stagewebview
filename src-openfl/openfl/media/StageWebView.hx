@@ -1,5 +1,6 @@
 package openfl.media;
 
+#if (!flash && sys && (!flash_doc_gen || air_doc_gen))
 import haxe.Timer;
 import haxe.crypto.Base64;
 import haxe.io.Bytes;
@@ -588,6 +589,8 @@ final class StageWebView extends EventDispatcher
 
 	private function __decodeCapturedBitmap(bytes:Bytes):BitmapData
 	{
+		// OpenFL's API docs build has no BitmapData.fromBytes in its AIR pass, and never runs this
+		#if !openfl_doc_gen
 		var bitmap = BitmapData.fromBytes(ByteArray.fromBytes(bytes));
 		if (bitmap == null)
 		{
@@ -595,6 +598,9 @@ final class StageWebView extends EventDispatcher
 		}
 
 		return bitmap;
+		#else
+		return null;
+		#end
 	}
 
 	private function __handleComplete():Void
@@ -953,3 +959,4 @@ final class StageWebView extends EventDispatcher
 		return __viewport;
 	}
 }
+#end
