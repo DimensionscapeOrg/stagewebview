@@ -1,27 +1,10 @@
 <xml>
 
 	<pragma once="true" />
-	<set name="STAGEWEBVIEW_OBJ_DIR" value="${this_dir}/obj" unless="STAGEWEBVIEW_OBJ_DIR" />
 
-	<section if="windows">
-		<compiler id="MSVC">
-			<objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}${OBJEXT}${OBJCACHE}${XPOBJ}" unless="winrt" />
-			<objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}-rt${OBJEXT}${OBJCACHE}${XPOBJ}" if="winrt" />
-			<objdir value="${STAGEWEBVIEW_OBJ_DIR}/msvc${MSVC_VER}-arm${OBJEXT}${OBJCACHE}${XPOBJ}" if="HXCPP_ARM64" />
-		</compiler>
-
-		<linker id="dll">
-			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
-		</linker>
-
-		<linker id="exe">
-			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
-		</linker>
-
-		<linker id="static_link">
-			<libdir name="${STAGEWEBVIEW_OBJ_DIR}/lib" />
-		</linker>
-	</section>
+	<!-- This file is included in the build of the program that uses the webview, so it only adds to that build.
+	     It sets no object or lib folder. A linker's lib folder set here applies to the program's own link, and to
+	     the libraries of hxcpp's compile cache, which then fail to link. -->
 
 	<include name="${this_dir}/Files.xml" />
 
