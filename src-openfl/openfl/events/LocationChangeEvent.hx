@@ -1,5 +1,6 @@
 package openfl.events;
 
+#if (!flash && (!flash_doc_gen || air_doc_gen))
 /**
 	OpenFL event dispatched by `openfl.media.StageWebView` during navigation.
 
@@ -58,3 +59,4 @@ class LocationChangeEvent extends Event
 		return value;
 	}
 }
+#end

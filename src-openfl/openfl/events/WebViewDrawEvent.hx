@@ -1,5 +1,6 @@
 package openfl.events;
 
+#if (!flash && (!flash_doc_gen || air_doc_gen))
 import openfl.display.BitmapData;
 import openfl.utils.ByteArray;
 
@@ -75,3 +76,4 @@ class WebViewDrawEvent extends Event
 		return "NONE";
 	}
 }
+#end

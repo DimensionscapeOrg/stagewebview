@@ -1,6 +1,6 @@
 package webview;
 
-#if (cpp && !android)
+#if (cpp && !android && !doc_gen)
 import cpp.Pointer;
 import cpp.Void as CVoid;
 
@@ -17,7 +17,7 @@ import cpp.Void as CVoid;
 	integration.
 **/
 typedef WebViewHandle = Pointer<CVoid>;
-#elseif hl
+#elseif (hl && !doc_gen)
 /**
 	A native handle used by the library to reference an operating-system window,
 	webview instance, or other backend-owned object.
@@ -29,7 +29,7 @@ typedef WebViewHandle = Pointer<CVoid>;
 	integration.
 **/
 abstract WebViewHandle(Dynamic) from Dynamic to Dynamic {}
-#elseif android
+#elseif (android && !doc_gen)
 /**
 	A native handle used by the library to reference an operating-system window,
 	webview instance, or other backend-owned object.
@@ -43,7 +43,7 @@ typedef WebViewHandle = Dynamic;
 	A native handle used by the library to reference an operating-system window,
 	webview instance, or other backend-owned object.
 
-	On non-native documentation and fallback targets this resolves to a dynamic
+	In documentation builds and on fallback targets this resolves to a dynamic
 	value so the public API remains type-complete.
 **/
 typedef WebViewHandle = Dynamic;
