@@ -3,7 +3,6 @@
   "url": "https://github.com/dimensionscapeOrg/stagewebview",
   "license": "Apache",
   "tags": [
-    "openfl",
     "stagewebview",
     "webview",
     "webview2",
@@ -19,7 +18,7 @@
     "html",
     "web"
   ],
-  "description": "Webview library for Haxe on Windows (WebView2), Linux (WebKitGTK), macOS and iOS (WKWebView) and Android, with a public webview.WebView API, an optional OpenFL StageWebView facade, hidden webviews, PDF output, direct hxcpp bindings, and a HashLink hdll on Windows.",
+  "description": "Webview library for Haxe on Windows (WebView2), Linux (WebKitGTK), macOS and iOS (WKWebView) and Android, with a public webview.WebView API, hidden webviews, PDF output, direct hxcpp bindings, and a HashLink hdll on Windows.",
   "version": "1.1.1",
   "classPath": "src",
   "releasenote": "On Windows, a program that uses the webview links in its own build folder rather than inside the library, and builds with HXCPP_COMPILE_CACHE set. OpenFL's API docs build works with the OpenFL facade on the class path: its Flash, AIR and HTML5 passes failed to compile the facade, and dox could not merge WebViewHandle. Other builds keep the classes and types they had.",

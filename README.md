@@ -5,12 +5,11 @@
 
 `StageWebView` is a webview library for Haxe on Windows, Linux, macOS, iOS and Android.
 
-It exposes two public APIs:
+Its public API is `webview.WebView`, for plain Haxe projects.
 
-- `webview.WebView` for plain Haxe projects
-- `openfl.media.StageWebView` for OpenFL projects that want AIR-style behavior
+The native backend is vendored in this repository. hxcpp talks to it directly, and HashLink uses a shipped `stagewebview.hdll` (Windows). Lime builds the same engines into its own binaries for `lime.ui.WebView`, so a Lime application does not need this library's Haxe API at all.
 
-The native backend is vendored in this repository. hxcpp talks to it directly, HashLink uses a shipped `stagewebview.hdll` (Windows), and the OpenFL layer stays optional unless you actually import it. Lime builds the same engines into its own binaries for `lime.ui.WebView`, so a Lime application does not need this library's Haxe API at all.
+From 2.0 there is no OpenFL facade here: OpenFL 9.7 has an `openfl.media.StageWebView` of its own, on `lime.ui.WebView`. For an older OpenFL, use StageWebView 1.x.
 
 Source: `https://github.com/dimensionscapeOrg/stagewebview`
 
@@ -30,15 +29,15 @@ Windows needs nothing shipped beside the application: `webview.h` finds the inst
 
 Linux needs the GTK and WebKitGTK development files to build (`sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev`); the build reads their flags from `pkg-config`. At run time it needs a display: an X server, Xvfb, or a Wayland session with XWayland.
 
-Linux and Android deliver page events, messages, script values and PDF results only when the host calls `WebView.processEvents()`. The OpenFL facade does that every frame; plain Haxe hosts call it from their own loop. On Windows, macOS and iOS the host's event loop already does the same work.
+Linux and Android deliver page events, messages, script values and PDF results only when the host calls `WebView.processEvents()`, which hosts do from their own loop. On Windows, macOS and iOS the host's event loop already does the same work.
 
 ## Why it exists
 
 This project is trying to solve two related problems without making either side awkward.
 
-OpenFL projects should have a real `StageWebView` implementation with a familiar AIR-shaped API. Non-OpenFL projects should be able to use the same backend through `webview.WebView` without inheriting OpenFL concepts, source paths, or editor noise they never asked for.
+Haxe programs should have a real webview on every native platform without taking on a framework, and frameworks should be able to build the same engines into their own binaries. `webview.WebView` is the first. `project/Files.xml` and the C++ API in `project/include/stagewebview` are the second, and they are how Lime's `lime.ui.WebView` gets its webview.
 
-The internal backend is kept separate on purpose. That makes the public API cleaner today, and it keeps the lower layer easier to move closer to Lime later if that ever becomes the right call.
+The internal backend is kept separate on purpose. That keeps the public API clean, and it is what lets a framework build the engines in.
 
 ## What is here now
 
@@ -46,10 +45,9 @@ The internal backend is kept separate on purpose. That makes the public API clea
 - Direct hxcpp bindings
 - HashLink hdll support (Windows)
 - Public `webview.WebView` API
-- Optional OpenFL `StageWebView` facade
 - Hidden webviews (`hidden`) and `printToPDF()` on every platform
 - Dox-generated API docs
-- Samples for basic embedding, live sites, JavaScript bridging, browser UI, docs browsing and PDF reports
+- Samples for a standalone window with a JavaScript bridge, and for PDF reports
 - A release prebuilt `stagewebview.hdll` for `Windows64`
 - `project/Files.xml` and a C++ API for frameworks that build the engines in
 
@@ -76,20 +74,6 @@ webView.run();
 ```
 
 This library provides the webview backend. It does not try to be a full general-purpose windowing toolkit, but it is comfortable embedding into one or standing up a small top-level window when that is all you need.
-
-## `openfl.media.StageWebView`
-
-The OpenFL API sits on top of the same backend and aims for AIR parity where that is practical on Windows.
-
-```haxe
-import openfl.geom.Rectangle;
-import openfl.media.StageWebView;
-
-var webView = new StageWebView();
-webView.stage = stage;
-webView.viewPort = new Rectangle(0, 0, stage.stageWidth, stage.stageHeight);
-webView.loadURL("https://www.openfl.org");
-```
 
 ## JavaScript bridge
 
@@ -153,10 +137,10 @@ The callback runs from the event loop, never inside the engine's own handler, so
 
 ## Embedding
 
-The OpenFL facade places a native child over the stage at `viewPort`. It gets the stage's window from Lime's `Window.nativeHandle`; with a Lime from before 8.4.0, which does not have it, it finds the window by giving it a title nothing else has for a moment.
+A framework embeds the webview as a native child of its own window, through `WindowBackend.h` (see below), as Lime's `lime.ui.WebView` does. The child is:
 
 - Windows: a child `HWND`.
-- Linux: a GTK popup window reparented into SDL's X11 window. Lime's SDL has no Wayland driver, so in a Wayland session the app runs on XWayland and the library asks GDK for X11 as well; embedding then works the same way. If GTK is forced onto Wayland (`GDK_BACKEND=wayland`) there is no X11 window to embed into: hidden webviews and PDF output still work, and the facade dispatches an `ErrorEvent` instead of showing the view.
+- Linux: a GTK popup window reparented into SDL's X11 window. Lime's SDL has no Wayland driver, so in a Wayland session the app runs on XWayland and the library asks GDK for X11 as well; embedding then works the same way. If GTK is forced onto Wayland (`GDK_BACKEND=wayland`) there is no X11 window to embed into: hidden webviews and PDF output still work, but no child window can be made.
 - macOS and iOS: a container view added over SDL's view, sized in points.
 - Android: a `FrameLayout` added over SDL's surface.
 
@@ -174,20 +158,13 @@ Depending on this haxelib costs a program nothing unless it uses `webview.WebVie
 
 ## Classpath behavior
 
-The published haxelib keeps `classPath` pointed at `src`, so pure Haxe projects only see `webview.*` by default.
-
-When `openfl` is defined, `extraParams.hxml` adds `src-openfl` automatically. That makes `openfl.media.StageWebView` available for OpenFL users without dumping `openfl.*` completion noise into projects that do not use OpenFL at all.
+The published haxelib keeps `classPath` pointed at `src`, so projects only see `webview.*`.
 
 ## Samples
 
 The repository includes a few demo projects:
 
-- `project.xml`: minimal sample
-- `project-intermediate.xml`: live-site demo
-- `project-bridge.xml`: JavaScript-to-Haxe bridge demo
-- `project-browser.xml`: browser-style sample with tabs and controls
-- `project-docs.xml`: local viewer for the generated API docs, in the repository only
-- `project-report.xml`: renders a report in a hidden webview, fills it over the bridge, prints it to PDF and shows the filled report on stage; runs on every platform
+- `project-report.xml`: a Lime app that renders a report in a hidden webview, fills it over the bridge and prints it to a PDF; runs on every platform
 - `samples/pure-haxe/build-cpp.hxml`: standalone `webview.WebView` sample with its own native window, local HTML deck, bridge messaging, window resizing, and Haxelib search routing
 - `samples/pdf/build-cpp.hxml`: headless plain-Haxe PDF sample for Windows, Linux and macOS; exits 0 once the PDF is written
 
@@ -211,7 +188,6 @@ bin/tests/native/NativeTestMain
 The unit suite covers:
 
 - `webview.WebView` state and callback behavior through a fake backend
-- `openfl.media.StageWebView` constructor behavior, viewport validation, and offline state handling
 - `printToPDF()` option defaults and result reporting
 - script delegation
 
@@ -223,10 +199,17 @@ The docs are generated in two steps:
 
 ```bash
 haxe build/docs-cpp.hxml
-haxelib run dox -i docs/xml/cpp.xml -o docs/api --title StageWebView -in "^webview$" -in "^webview[.]" -ex "^webview[.]_internal" -in "^openfl$" -in "^openfl[.]media$" -in "^openfl[.]media[.]StageWebView$" -in "^openfl[.]events$" -in "^openfl[.]events[.](LocationChangeEvent|WebViewDrawEvent)$"
+haxelib run dox -i docs/xml/cpp.xml -o docs/api --title StageWebView -in "^webview$" -in "^webview[.]" -ex "^webview[.]_internal"
 ```
 
 The generated site ends up in `docs/api`.
+
+## Upgrading from 1.x
+
+The OpenFL facade is gone: `openfl.media.StageWebView`, `openfl.events.LocationChangeEvent` and `openfl.events.WebViewDrawEvent`, with `src-openfl`. OpenFL 9.7 has its own `openfl.media.StageWebView`, on Lime's `lime.ui.WebView`, and `lime.ui.WebView` also has what the facade added beyond AIR: `addInitScript()`, `postMessage()`, `evaluateJavaScript()`, `printToPDF()`, and `capture()` for drawing the view. For OpenFL before 9.7, stay on StageWebView 1.x, which Lime 8.4 depends on.
+
+- The demo projects built on the facade (`project.xml`, `project-intermediate.xml`, `project-bridge.xml`, `project-browser.xml` and `project-docs.xml`) are gone. `samples/pure-haxe` is the demo for `webview.WebView`, and `project-report.xml` is now a Lime app.
+- `stagewebview_native_handle` is no longer defined.
 
 ## Upgrading from 0.7
 
@@ -262,15 +245,11 @@ Options are now typed, so a misspelled one is a compile error:
 | `startHidden` | `hidden` |
 | `mediaPlaybackRequiresUserAction` | `autoplay`, the other way around |
 
-The OpenFL facade keeps AIR's names, including `mediaPlaybackRequiresUserAction`, and takes the options above for the ones AIR does not have.
-
 - `WebView.isSupported` is a property, read at run time, so it is no longer a constant. It is `false` on Windows without the WebView2 Runtime, and on targets with no backend, which an HTML5 build made on Windows used to get wrong.
 - `WebView2Loader.dll` and the `EBWebView` folder are no longer shipped or copied beside the application. Nothing needs them, so remove them from any packaging that expects them. Applications still need the WebView2 Runtime, as they always did.
 - `evaluateJavaScript()` can report the script's value, on every engine.
-- The OpenFL facade keeps developer tools off outside `-debug` builds. Pass `{devTools: true}` to turn them on.
 - `onNavigate` asks about `load()` on every engine, Android included, and no longer asks about the page from `loadHTML()`, which goes nowhere.
 - A navigation cancelled through `onNavigate`, or stopped with `stop()`, no longer reaches `onError`.
-- With a Lime that has `Window.nativeHandle`, the OpenFL facade gets the stage's window from it, so the window's title no longer changes for a moment.
 - Internal classes moved from `_internal.webview` to `webview._internal`. The native sources moved from `lib` to `project`, and `build/BuildNative.xml` and `build/BuildHashlink.xml` are now `project/Build.xml` and `project/BuildHashlink.xml`.
 - `haxelib.json` said MIT in error. The license has always been the Apache License 2.0.
 
@@ -282,5 +261,5 @@ StageWebView is under the Apache License 2.0, as `LICENSE` says. `NOTICE` lists 
 
 - Windows, Linux, macOS, iOS and Android
 - hxcpp everywhere; HashLink on Windows x64
-- AIR-style `StageWebView` parity where the platform allows it
+- Engines that a framework can build into its own binaries
 - Public APIs kept library-owned, with the backend kept internal
