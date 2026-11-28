@@ -45,7 +45,7 @@ jobs:
           haxe samples/pdf/build-cpp.hxml -D HXCPP_M64
           bin/samples/pdf/cpp/Main.exe "$GITHUB_WORKSPACE/report-windows.pdf"
           python .github/scripts/check_report_pdf.py report-windows.pdf
-      - name: OpenFL report sample
+      - name: Lime report sample
         shell: bash
         run: |
           haxelib run lime build project-report.xml windows
@@ -55,15 +55,12 @@ jobs:
           cat "$store/report-status.txt"
           grep -q '^OK:' "$store/report-status.txt"
           python "$GITHUB_WORKSPACE/.github/scripts/check_report_pdf.py" "$store/stagewebview-report.pdf"
-          cp "$store/stagewebview-report.pdf" "$GITHUB_WORKSPACE/report-windows-openfl.pdf"
-          cp "$store/report-preview.png" "$GITHUB_WORKSPACE/preview-windows.png"
+          cp "$store/stagewebview-report.pdf" "$GITHUB_WORKSPACE/report-windows-lime.pdf"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: windows
-          path: |
-            report-windows*.pdf
-            preview-windows.png
+          path: report-windows*.pdf
 
   linux:
     runs-on: ubuntu-24.04
@@ -92,7 +89,7 @@ jobs:
           haxe samples/pdf/build-cpp.hxml -D HXCPP_M64
           xvfb-run -a -s "-screen 0 1280x1024x24" bin/samples/pdf/cpp/Main "$GITHUB_WORKSPACE/report-linux.pdf"
           python3 .github/scripts/check_report_pdf.py report-linux.pdf
-      - name: OpenFL report sample
+      - name: Lime report sample
         run: |
           haxelib run lime build project-report.xml linux
           cd bin/samples/report/linux/bin
@@ -101,15 +98,12 @@ jobs:
           cat "$store/report-status.txt"
           grep -q '^OK:' "$store/report-status.txt"
           python3 "$GITHUB_WORKSPACE/.github/scripts/check_report_pdf.py" "$store/stagewebview-report.pdf"
-          cp "$store/stagewebview-report.pdf" "$GITHUB_WORKSPACE/report-linux-openfl.pdf"
-          cp "$store/report-preview.png" "$GITHUB_WORKSPACE/preview-linux.png"
+          cp "$store/stagewebview-report.pdf" "$GITHUB_WORKSPACE/report-linux-lime.pdf"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: linux
-          path: |
-            report-linux*.pdf
-            preview-linux.png
+          path: report-linux*.pdf
 
   # On the oldest runner, so that the library loads on as many systems as it can
   gtk-engine:
@@ -168,7 +162,7 @@ jobs:
           haxe samples/pdf/build-cpp.hxml -D HXCPP_ARM64
           bin/samples/pdf/cpp/Main "$GITHUB_WORKSPACE/report-macos.pdf"
           python3 .github/scripts/check_report_pdf.py report-macos.pdf
-      - name: OpenFL report sample
+      - name: Lime report sample
         run: |
           haxelib run lime build project-report.xml mac
           app=$(find bin/samples/report/macos -path '*Contents/MacOS/*' -type f -perm -u+x | head -1)
@@ -177,15 +171,12 @@ jobs:
           cat "$store/report-status.txt"
           grep -q '^OK:' "$store/report-status.txt"
           python3 "$GITHUB_WORKSPACE/.github/scripts/check_report_pdf.py" "$store/stagewebview-report.pdf"
-          cp "$store/stagewebview-report.pdf" "$GITHUB_WORKSPACE/report-macos-openfl.pdf"
-          cp "$store/report-preview.png" "$GITHUB_WORKSPACE/preview-macos.png"
+          cp "$store/stagewebview-report.pdf" "$GITHUB_WORKSPACE/report-macos-lime.pdf"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: macos
-          path: |
-            report-macos*.pdf
-            preview-macos.png
+          path: report-macos*.pdf
 
   # Compiles the native glue for the iOS simulator (x86_64, hxcpp's simulator toolchain) through plain hxcpp,
   # which needs neither an Xcode project nor Lime. Running on iOS is not automated.
@@ -220,7 +211,7 @@ jobs:
           haxelib setup "$HOME/haxelib"
       - name: Install pinned haxelibs
         run: .github/scripts/install-haxelibs.sh
-      - name: Build the OpenFL report sample for the simulator
+      - name: Build the Lime report sample for the simulator
         run: haxelib run lime build project-report.xml ios -simulator
 
   android:
@@ -245,7 +236,7 @@ jobs:
           haxelib run lime config ANDROID_NDK_ROOT "$ANDROID_SDK_ROOT/ndk/21.4.7075529"
           haxelib run lime config JAVA_HOME "$JAVA_HOME"
           haxelib run lime config ANDROID_SETUP true
-      - name: Build the OpenFL report sample
+      - name: Build the Lime report sample
         run: haxelib run lime build project-report.xml android -debug -x86_64
       - name: Enable KVM
         run: |
@@ -266,5 +257,4 @@ jobs:
           name: android
           path: |
             report-android.pdf
-            preview-android.png
             report-android-status.txt

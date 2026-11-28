@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installs the debug report sample on a running emulator, waits for it to finish, and pulls its output
-# (report-status.txt, the PDF and the preview capture) into the working directory.
+# (report-status.txt and the PDF) into the working directory.
 set -uo pipefail
 
 package=com.dimensionscape.stagewebview.report
@@ -29,8 +29,6 @@ done
 echo "$status" | tee report-android-status.txt
 if [ -n "$directory" ]; then
   adb exec-out run-as "$package" cat "$directory/stagewebview-report.pdf" > report-android.pdf
-  sleep 4
-  adb exec-out run-as "$package" cat "$directory/report-preview.png" > preview-android.png || true
 fi
 
 adb logcat -d | grep -E "Main.hx|StageWebView|AndroidRuntime|chromium" | tail -80

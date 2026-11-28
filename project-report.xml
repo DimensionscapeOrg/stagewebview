@@ -13,11 +13,10 @@
 	<window if="mobile" orientation="portrait" fullscreen="false" />
 
 	<source path="src" />
-	<source path="src-openfl" />
 	<source path="samples/common/src" />
 	<source path="samples/report/src" />
 	<include name="include.xml" />
 
-	<haxelib name="openfl" />
+	<haxelib name="lime" />
 
 </project>
