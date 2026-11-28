@@ -12,6 +12,4 @@
 build export-ignore
 docs export-ignore
 ndll/**/*.hash export-ignore
-project-docs.xml export-ignore
-samples/docs export-ignore
 tests export-ignore

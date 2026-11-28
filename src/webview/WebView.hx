@@ -350,7 +350,7 @@ class WebView
 
 		Linux (GTK) and Android deliver page events, messages, script values and
 		`printToPDF()` results only when this is called, so call it once per frame
-		from your main loop. The OpenFL `StageWebView` facade does this for you. On
+		from your main loop. On
 		Windows, macOS and iOS the host's event loop already does the same work and
 		this call is optional.
 
@@ -453,7 +453,6 @@ class WebView
 		}
 	}
 
-	@:allow(openfl.media.StageWebView)
 	@:dox(hide)
 	@:noCompletion
 	public function __capturePreviewBase64(format:Int):String

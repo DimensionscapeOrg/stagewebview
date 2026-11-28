@@ -1,6 +1,3 @@
-import openfl.events.LocationChangeEvent;
-import openfl.events.WebViewDrawEvent;
-import openfl.media.StageWebView;
 import webview.NativeHandleKind;
 import webview.WebView;
 import webview.WebViewHandle;
@@ -11,9 +8,6 @@ class DocsMain
 {
 	static function main():Void
 	{
-		var __stageWebView:StageWebView = null;
-		var __locationChangeEvent:LocationChangeEvent = null;
-		var __webViewDrawEvent:WebViewDrawEvent = null;
 		var __webView:WebView = null;
 		var __handle:WebViewHandle = null;
 		var __hint:WebViewHint = WebViewHint.NONE;
@@ -23,9 +17,6 @@ class DocsMain
 		// Keep the public API reachable for XML generation without affecting runtime.
 		if (false)
 		{
-			trace(__stageWebView);
-			trace(__locationChangeEvent);
-			trace(__webViewDrawEvent);
 			trace(__webView);
 			trace(__handle);
 			trace(__hint);

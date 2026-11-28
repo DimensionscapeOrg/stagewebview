@@ -431,7 +431,7 @@ public final class StageWebViewHost {
 		});
 	}
 
-	// ---- child containers for the OpenFL facade ----
+	// ---- child containers for a host that embeds the webview ----
 
 	public static int createContainer(final int x, final int y, final int width, final int height) {
 		final int id = NEXT_ID.getAndIncrement();

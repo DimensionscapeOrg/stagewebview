@@ -17,7 +17,6 @@
 		<compilerflag value="-I${this_dir}/include/stagewebview/windows" if="windows" />
 		<compilerflag value="-I${HXCPP}/include" />
 		<file name="${this_dir}/bindings/WebViewBindings.cpp" />
-		<file name="${this_dir}/bindings/WindowBindings.cpp" />
 	</files>
 
 	<files id="haxe">

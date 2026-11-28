@@ -108,7 +108,7 @@ public:
 
 		if (host != nil)
 		{
-			// Embedded: fill the container the facade positions.
+			// Embedded: fill the container the host positions.
 			#if TARGET_OS_IPHONE
 			view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 			#else

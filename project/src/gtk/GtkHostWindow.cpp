@@ -1,4 +1,4 @@
-// Linux child-window plumbing for the OpenFL facade.
+// Linux child-window plumbing for a host that embeds the webview.
 //
 // Parent handles are X11 window ids (SDL's window, found by title). Child handles are GtkWindow pointers:
 // an override-redirect GTK popup whose X11 window is reparented into the parent, so the window manager

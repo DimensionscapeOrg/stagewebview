@@ -15,7 +15,7 @@ import webview.WebViewOptions;
 	through `processEvents()`, which `webview.WebView.processEvents()` calls.
 
 	Handles are the integer ids the Java host assigns. A host window passed to
-	the constructor is a container id from the OpenFL facade.
+	the constructor is a container id from `createContainer`.
 **/
 @:noCompletion
 class AndroidWebViewBackend implements IWebViewBackend

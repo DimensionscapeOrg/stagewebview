@@ -1,4 +1,4 @@
-// macOS and iOS child-window plumbing for the OpenFL facade. Compiled with ARC.
+// macOS and iOS child-window plumbing for a host that embeds the webview. Compiled with ARC.
 //
 // Parent handles are the SDL window (NSWindow found by title on macOS, the key UIWindow on iOS).
 // Child handles are plain container views added on top of SDL's view; the webview fills its container.
@@ -111,7 +111,7 @@ void *windowCreateChildWindow(void *parentHandle, int x, int y, int width, int h
 	container.hidden = YES;
 	[root addSubview:container];
 
-	// The facade owns the container until windowDestroy releases it.
+	// The host owns the container until windowDestroy releases it.
 	return (__bridge_retained void *)container;
 }
 

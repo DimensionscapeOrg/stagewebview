@@ -13,13 +13,11 @@ class ExtraParamsMacro
 	private static var __configuredGtk:Bool = false;
 	private static var __definedRoot:Bool = false;
 	private static var __definedWindowsTarget:Bool = false;
-	private static var __included:Bool = false;
 	private static var __preparedHashLinkOutput:String = null;
 	private static var __warnedRootOutput:Bool = false;
 
 	public static function include():Void
 	{
-		var libraryRoot = __libraryRoot();
 		var currentWorkingDirectory = Path.normalize(StringTools.replace(Sys.getCwd(), "\\", "/"));
 
 		if (!__definedRoot && FileSystem.exists(Path.join([currentWorkingDirectory, "include.xml"])))
@@ -38,46 +36,6 @@ class ExtraParamsMacro
 		{
 			Compiler.define("stagewebview_supported");
 		}
-
-		if (Context.defined("openfl") && __hasLimeNativeHandle())
-		{
-			Compiler.define("stagewebview_native_handle");
-		}
-
-		if (__included || !Context.defined("openfl"))
-		{
-			return;
-		}
-
-		// OpenFL 9.7 has its own openfl.media.StageWebView, on lime.ui.WebView, so this one is only for older versions
-		if (__isOpenFLVersionAtLeast(9, 7))
-		{
-			return;
-		}
-
-		var openflSourcePath = Path.join([libraryRoot, "src-openfl"]);
-
-		if (FileSystem.exists(openflSourcePath))
-		{
-			Compiler.addClassPath(openflSourcePath);
-			__included = true;
-		}
-	}
-
-	private static function __isOpenFLVersionAtLeast(major:Int, minor:Int):Bool
-	{
-		var version = Context.definedValue("openfl");
-		if (version == null) return false;
-
-		// The define holds the version of the openfl library, such as 9.7.0 or 9.7.0-dev
-		var parts = version.split("-")[0].split(".");
-		var actualMajor = Std.parseInt(parts[0]);
-		var actualMinor = parts.length > 1 ? Std.parseInt(parts[1]) : 0;
-
-		if (actualMajor == null) return false;
-		if (actualMinor == null) actualMinor = 0;
-
-		return actualMajor > major || (actualMajor == major && actualMinor >= minor);
 	}
 
 	// What a program using the native backend needs, set up as its class is built, so that a framework that only
@@ -127,20 +85,6 @@ class ExtraParamsMacro
 	private static function __isWindowsTarget():Bool
 	{
 		return __isSupportedTarget() && !Context.defined("android") && !Context.defined("ios") && Sys.systemName() == "Windows";
-	}
-
-	// By the class rather than the version: a Lime from git can call itself 8.4.0 from before Window.nativeHandle.
-	private static function __hasLimeNativeHandle():Bool
-	{
-		try
-		{
-			Context.resolvePath("lime/ui/WindowHandle.hx");
-			return true;
-		}
-		catch (error:Dynamic)
-		{
-			return false;
-		}
 	}
 
 	private static function __isLinuxDesktopTarget():Bool

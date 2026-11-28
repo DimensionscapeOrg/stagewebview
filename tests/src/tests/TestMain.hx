@@ -1,6 +1,5 @@
 package tests;
 
-import tests.openfl.StageWebViewTest;
 import tests.webview.WebViewTest;
 import utest.UTest;
 
@@ -12,6 +11,6 @@ class TestMain
 {
 	private static function main():Void
 	{
-		UTest.run([new WebViewTest(), new StageWebViewTest()]);
+		UTest.run([new WebViewTest()]);
 	}
 }

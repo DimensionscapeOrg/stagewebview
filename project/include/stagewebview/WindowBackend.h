@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-// Child-window plumbing for the OpenFL facade. WindowBackend.cpp is the Windows implementation;
+// Child-window plumbing for a host that embeds the webview. WindowBackend.cpp is the Windows implementation;
 // gtk/GtkHostWindow.cpp and apple/AppleHostWindow.mm implement the same functions elsewhere.
 #if defined(_WIN32)
 #include <Windows.h>
